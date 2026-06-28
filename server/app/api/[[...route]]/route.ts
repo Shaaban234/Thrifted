@@ -1,0 +1,501 @@
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+import { cors } from "hono/cors";
+import { sql } from "@/lib/db";
+import { hashPassword, verifyPassword, signToken, getUserId } from "@/lib/auth";
+
+export const runtime = "nodejs";
+
+const app = new Hono().basePath("/api");
+
+app.use("*", cors());
+
+// ---------- row mappers (snake_case DB -> camelCase API) ----------
+const mapUser = (r: any) => ({
+  id: r.id,
+  username: r.username,
+  avatarUrl: r.avatar_url ?? "",
+  bio: r.bio ?? undefined,
+  location: r.location ?? undefined,
+  ratingAvg: Number(r.rating_avg ?? 0),
+  reviewCount: r.review_count ?? 0,
+  followers: r.followers ?? 0,
+  following: r.following ?? 0,
+  isAdmin: r.is_admin ?? false,
+  joinedAt: r.joined_at,
+});
+
+const mapItem = (r: any) => ({
+  id: r.id,
+  sellerId: r.seller_id,
+  title: r.title,
+  description: r.description ?? "",
+  brand: r.brand,
+  category: r.category,
+  subcategory: r.subcategory ?? undefined,
+  size: r.size,
+  condition: r.condition,
+  color: r.color ?? "Multi",
+  price: Number(r.price),
+  photos: r.photos ?? [],
+  status: r.status,
+  views: r.views ?? 0,
+  likes: r.likes ?? 0,
+  createdAt: r.created_at,
+});
+
+const mapMessage = (r: any) => ({
+  id: r.id,
+  conversationId: r.conversation_id,
+  senderId: r.sender_id,
+  body: r.body,
+  type: r.type,
+  offerAmount: r.offer_amount ?? undefined,
+  offerStatus: r.offer_status ?? undefined,
+  createdAt: r.created_at,
+});
+
+const mapConversation = (r: any) => ({
+  id: r.id,
+  itemId: r.item_id,
+  buyerId: r.buyer_id,
+  sellerId: r.seller_id,
+  lastMessage: r.last_message ?? undefined,
+  lastMessageAt: r.last_message_at ?? undefined,
+  unread: Number(r.unread ?? 0),
+});
+
+const mapOrder = (r: any) => ({
+  id: r.id,
+  itemId: r.item_id,
+  buyerId: r.buyer_id,
+  sellerId: r.seller_id,
+  amount: Number(r.amount),
+  protectionFee: Number(r.protection_fee),
+  shippingFee: Number(r.shipping_fee),
+  total: Number(r.total),
+  status: r.status,
+  createdAt: r.created_at,
+});
+
+const mapNotification = (r: any) => ({
+  id: r.id,
+  type: r.type,
+  actorId: r.actor_id ?? undefined,
+  itemId: r.item_id ?? undefined,
+  conversationId: r.conversation_id ?? undefined,
+  body: r.body,
+  read: r.read,
+  createdAt: r.created_at,
+});
+
+const mapWallet = (r: any) => ({
+  id: r.id,
+  userId: r.user_id,
+  amount: Number(r.amount),
+  type: r.type,
+  label: r.label,
+  createdAt: r.created_at,
+});
+
+const mapReview = (r: any) => ({
+  id: r.id,
+  orderId: r.order_id ?? undefined,
+  reviewerId: r.reviewer_id,
+  revieweeId: r.reviewee_id,
+  rating: r.rating,
+  comment: r.comment ?? "",
+  createdAt: r.created_at,
+});
+
+// auth helper
+async function requireUser(c: any): Promise<string | null> {
+  return getUserId(c.req.header("Authorization"));
+}
+
+// fire-and-forget notification (never notifies yourself)
+async function notify(
+  userId: string,
+  n: { type: string; actorId?: string; itemId?: string; conversationId?: string; body: string }
+) {
+  if (!userId || userId === n.actorId) return;
+  await sql`
+    insert into notifications (user_id, type, actor_id, item_id, conversation_id, body)
+    values (${userId}, ${n.type}, ${n.actorId ?? null}, ${n.itemId ?? null}, ${n.conversationId ?? null}, ${n.body})`;
+}
+
+// ---------- health ----------
+app.get("/", (c) => c.json({ ok: true, service: "thrifted-api" }));
+
+// ---------- auth ----------
+app.post("/auth/signup", async (c) => {
+  const { email, password, username } = await c.req.json().catch(() => ({}));
+  if (!email || !password || !username)
+    return c.json({ error: "email, password and username are required" }, 400);
+
+  const existing = await sql`select id from users where email = ${email} or username = ${username}`;
+  if (existing.length) return c.json({ error: "Email or username already taken" }, 409);
+
+  const rows = await sql`
+    insert into users (email, password_hash, username, avatar_url, bio)
+    values (${email}, ${hashPassword(password)}, ${username},
+            ${"https://i.pravatar.cc/200?u=" + encodeURIComponent(email)}, ${"New to Thrifted ✨"})
+    returning *`;
+  const user = rows[0];
+  const token = await signToken(user.id);
+  return c.json({ token, user: mapUser(user) });
+});
+
+app.post("/auth/login", async (c) => {
+  const { email, password } = await c.req.json().catch(() => ({}));
+  if (!email || !password) return c.json({ error: "email and password are required" }, 400);
+
+  const rows = await sql`select * from users where email = ${email}`;
+  const user = rows[0];
+  if (!user || !verifyPassword(password, user.password_hash))
+    return c.json({ error: "Invalid email or password" }, 401);
+
+  const token = await signToken(user.id);
+  return c.json({ token, user: mapUser(user) });
+});
+
+app.get("/auth/me", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`select * from users where id = ${uid}`;
+  if (!rows.length) return c.json({ error: "Not found" }, 404);
+  const favs = await sql`select item_id from favorites where user_id = ${uid}`;
+  const follows = await sql`select followed_id from follows where follower_id = ${uid}`;
+  return c.json({
+    user: mapUser(rows[0]),
+    favorites: favs.map((f: any) => f.item_id),
+    follows: follows.map((f: any) => f.followed_id),
+  });
+});
+
+// ---------- items ----------
+app.get("/items", async (c) => {
+  const { category, q, brand, size, condition, color, sort, sellerId } = c.req.query();
+  const where: string[] = [];
+  const params: any[] = [];
+  const eq = (col: string, val: any) => { params.push(val); where.push(`${col} = $${params.length}`); };
+
+  if (sellerId) eq("seller_id", sellerId);
+  if (category) eq("category", category);
+  if (brand) eq("brand", brand);
+  if (size) eq("size", size);
+  if (condition) eq("condition", condition);
+  if (color) eq("color", color);
+  if (q) {
+    params.push(`%${q}%`);
+    const p = `$${params.length}`;
+    where.push(`(title ilike ${p} or brand ilike ${p} or description ilike ${p})`);
+  }
+
+  let order = "created_at desc";
+  if (sort === "price_asc") order = "price asc";
+  else if (sort === "price_desc") order = "price desc";
+
+  const whereSql = where.length ? `where ${where.join(" and ")}` : "";
+  const query = `select * from items ${whereSql} order by ${order} limit 100`;
+  // neon HTTP driver: calling sql(string, params) runs a parameterized raw query.
+  const rows = (await (sql as any)(query, params)) as any[];
+
+  // Include the distinct sellers so the app can render cards/detail without N+1 fetches.
+  const sellerIds = [...new Set(rows.map((r) => r.seller_id))];
+  let sellers: any[] = [];
+  if (sellerIds.length) {
+    const sRows = (await sql`select * from users where id = any(${sellerIds})`) as any[];
+    sellers = sRows.map(mapUser);
+  }
+  return c.json({ items: rows.map(mapItem), sellers });
+});
+
+app.get("/items/:id", async (c) => {
+  const rows = await sql`select * from items where id = ${c.req.param("id")}`;
+  if (!rows.length) return c.json({ error: "Not found" }, 404);
+  await sql`update items set views = views + 1 where id = ${rows[0].id}`;
+  const seller = await sql`select * from users where id = ${rows[0].seller_id}`;
+  return c.json({ item: mapItem(rows[0]), seller: seller[0] ? mapUser(seller[0]) : null });
+});
+
+app.post("/items", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const b = await c.req.json();
+  const rows = await sql`
+    insert into items (seller_id, title, description, brand, category, subcategory, size, condition, color, price, photos)
+    values (${uid}, ${b.title}, ${b.description ?? ""}, ${b.brand}, ${b.category}, ${b.subcategory ?? null},
+            ${b.size}, ${b.condition}, ${b.color ?? "Multi"}, ${b.price}, ${b.photos ?? []})
+    returning *`;
+  return c.json({ item: mapItem(rows[0]) });
+});
+
+app.patch("/items/:id", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const owned = await sql`select seller_id from items where id = ${id}`;
+  if (!owned.length) return c.json({ error: "Not found" }, 404);
+  if (owned[0].seller_id !== uid) return c.json({ error: "Forbidden" }, 403);
+  const b = await c.req.json();
+  const rows = await sql`
+    update items set
+      title = coalesce(${b.title ?? null}, title),
+      description = coalesce(${b.description ?? null}, description),
+      brand = coalesce(${b.brand ?? null}, brand),
+      category = coalesce(${b.category ?? null}, category),
+      subcategory = coalesce(${b.subcategory ?? null}, subcategory),
+      size = coalesce(${b.size ?? null}, size),
+      condition = coalesce(${b.condition ?? null}, condition),
+      color = coalesce(${b.color ?? null}, color),
+      price = coalesce(${b.price ?? null}, price),
+      status = coalesce(${b.status ?? null}, status),
+      photos = coalesce(${b.photos ?? null}, photos)
+    where id = ${id} returning *`;
+  return c.json({ item: mapItem(rows[0]) });
+});
+
+app.delete("/items/:id", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const owned = await sql`select seller_id from items where id = ${id}`;
+  if (!owned.length) return c.json({ error: "Not found" }, 404);
+  if (owned[0].seller_id !== uid) return c.json({ error: "Forbidden" }, 403);
+  await sql`delete from items where id = ${id}`;
+  return c.json({ ok: true });
+});
+
+// ---------- users ----------
+app.get("/users/:id", async (c) => {
+  const rows = await sql`select * from users where id = ${c.req.param("id")}`;
+  if (!rows.length) return c.json({ error: "Not found" }, 404);
+  const items = await sql`select * from items where seller_id = ${rows[0].id} order by created_at desc`;
+  const reviews = await sql`select * from reviews where reviewee_id = ${rows[0].id} order by created_at desc`;
+  return c.json({ user: mapUser(rows[0]), items: items.map(mapItem), reviews });
+});
+
+// ---------- favorites ----------
+app.get("/favorites", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`
+    select i.* from items i join favorites f on f.item_id = i.id
+    where f.user_id = ${uid} order by f.created_at desc`;
+  return c.json({ items: rows.map(mapItem) });
+});
+
+app.post("/favorites/:itemId", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const itemId = c.req.param("itemId");
+  const existing = await sql`select 1 from favorites where user_id = ${uid} and item_id = ${itemId}`;
+  if (existing.length) {
+    await sql`delete from favorites where user_id = ${uid} and item_id = ${itemId}`;
+    await sql`update items set likes = greatest(likes - 1, 0) where id = ${itemId}`;
+    return c.json({ favorited: false });
+  }
+  await sql`insert into favorites (user_id, item_id) values (${uid}, ${itemId})`;
+  await sql`update items set likes = likes + 1 where id = ${itemId}`;
+  const it = (await sql`select seller_id, title from items where id = ${itemId}`)[0];
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  if (it) await notify(it.seller_id, { type: "like", actorId: uid, itemId, body: `${me?.username} liked your ${it.title}` });
+  return c.json({ favorited: true });
+});
+
+// ---------- follows ----------
+app.post("/follows/:userId", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const target = c.req.param("userId");
+  if (target === uid) return c.json({ error: "Cannot follow yourself" }, 400);
+  const existing = await sql`select 1 from follows where follower_id = ${uid} and followed_id = ${target}`;
+  if (existing.length) {
+    await sql`delete from follows where follower_id = ${uid} and followed_id = ${target}`;
+    await sql`update users set followers = greatest(followers - 1, 0) where id = ${target}`;
+    await sql`update users set following = greatest(following - 1, 0) where id = ${uid}`;
+    return c.json({ following: false });
+  }
+  await sql`insert into follows (follower_id, followed_id) values (${uid}, ${target})`;
+  await sql`update users set followers = followers + 1 where id = ${target}`;
+  await sql`update users set following = following + 1 where id = ${uid}`;
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  await notify(target, { type: "follow", actorId: uid, body: `${me?.username} started following you` });
+  return c.json({ following: true });
+});
+
+// ---------- conversations & messages ----------
+app.get("/conversations", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = (await sql`
+    select c.*,
+      (select body from messages m where m.conversation_id = c.id order by created_at desc limit 1) as last_message,
+      (select created_at from messages m where m.conversation_id = c.id order by created_at desc limit 1) as last_message_at
+    from conversations c
+    where c.buyer_id = ${uid} or c.seller_id = ${uid}
+    order by last_message_at desc nulls last`) as any[];
+
+  const userIds = [...new Set(rows.flatMap((r) => [r.buyer_id, r.seller_id]))];
+  const itemIds = [...new Set(rows.map((r) => r.item_id).filter(Boolean))];
+  const users = userIds.length ? ((await sql`select * from users where id = any(${userIds})`) as any[]).map(mapUser) : [];
+  const items = itemIds.length ? ((await sql`select * from items where id = any(${itemIds})`) as any[]).map(mapItem) : [];
+  return c.json({ conversations: rows.map(mapConversation), users, items });
+});
+
+app.post("/conversations", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const { itemId } = await c.req.json();
+  const item = (await sql`select seller_id from items where id = ${itemId}`)[0];
+  if (!item) return c.json({ error: "Item not found" }, 404);
+  const existing = await sql`select * from conversations where item_id = ${itemId} and buyer_id = ${uid}`;
+  if (existing.length) return c.json({ conversation: mapConversation(existing[0]) });
+  const rows = await sql`
+    insert into conversations (item_id, buyer_id, seller_id)
+    values (${itemId}, ${uid}, ${item.seller_id}) returning *`;
+  return c.json({ conversation: mapConversation(rows[0]) });
+});
+
+app.get("/conversations/:id/messages", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`select * from messages where conversation_id = ${c.req.param("id")} order by created_at asc`;
+  return c.json({ messages: rows.map(mapMessage) });
+});
+
+async function otherParticipant(convoId: string, uid: string): Promise<string | null> {
+  const c = (await sql`select buyer_id, seller_id from conversations where id = ${convoId}`)[0];
+  if (!c) return null;
+  return c.buyer_id === uid ? c.seller_id : c.buyer_id;
+}
+
+app.post("/conversations/:id/messages", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const convoId = c.req.param("id");
+  const { body } = await c.req.json();
+  const rows = await sql`
+    insert into messages (conversation_id, sender_id, body, type)
+    values (${convoId}, ${uid}, ${body}, 'text') returning *`;
+  const other = await otherParticipant(convoId, uid);
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  if (other) await notify(other, { type: "system", actorId: uid, conversationId: convoId, body: `${me?.username}: ${body}` });
+  return c.json({ message: mapMessage(rows[0]) });
+});
+
+app.post("/conversations/:id/offers", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const convoId = c.req.param("id");
+  const { amount } = await c.req.json();
+  const rows = await sql`
+    insert into messages (conversation_id, sender_id, body, type, offer_amount, offer_status)
+    values (${convoId}, ${uid}, ${"Offered Rs " + Number(amount).toLocaleString()}, 'offer', ${amount}, 'pending')
+    returning *`;
+  const other = await otherParticipant(convoId, uid);
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  if (other) await notify(other, { type: "offer", actorId: uid, conversationId: convoId, body: `${me?.username} sent you an offer of Rs ${Number(amount).toLocaleString()}` });
+  return c.json({ message: mapMessage(rows[0]) });
+});
+
+app.post("/messages/:id/offer-response", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const { accept } = await c.req.json();
+  const rows = await sql`
+    update messages set offer_status = ${accept ? "accepted" : "declined"}
+    where id = ${c.req.param("id")} returning *`;
+  if (!rows.length) return c.json({ error: "Not found" }, 404);
+  return c.json({ message: mapMessage(rows[0]) });
+});
+
+// ---------- orders ----------
+app.post("/orders", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const { itemId } = await c.req.json();
+  const item = (await sql`select * from items where id = ${itemId}`)[0];
+  if (!item) return c.json({ error: "Item not found" }, 404);
+  const amount = Number(item.price);
+  const protectionFee = Math.round(49 + amount * 0.05);
+  const shippingFee = 199;
+  const total = amount + protectionFee + shippingFee;
+
+  const order = (await sql`
+    insert into orders (item_id, buyer_id, seller_id, amount, protection_fee, shipping_fee, total, status)
+    values (${itemId}, ${uid}, ${item.seller_id}, ${amount}, ${protectionFee}, ${shippingFee}, ${total}, 'paid')
+    returning *`)[0];
+
+  await sql`update items set status = 'sold' where id = ${itemId}`;
+  await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${uid}, ${-total}, 'purchase', ${"Purchase: " + item.title}, ${order.id})`;
+  await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${item.seller_id}, ${amount}, 'sale', ${"Sale: " + item.title}, ${order.id})`;
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  await notify(item.seller_id, { type: "sold", actorId: uid, itemId, body: `${me?.username} bought your ${item.title}` });
+  return c.json({ order: mapOrder(order) });
+});
+
+app.get("/orders", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`select * from orders where buyer_id = ${uid} or seller_id = ${uid} order by created_at desc`;
+  return c.json({ orders: rows.map(mapOrder) });
+});
+
+app.post("/orders/:id/advance", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const flow = ["paid", "shipped", "delivered", "completed"];
+  const o = (await sql`select * from orders where id = ${c.req.param("id")}`)[0];
+  if (!o) return c.json({ error: "Not found" }, 404);
+  const next = flow[Math.min(flow.indexOf(o.status) + 1, flow.length - 1)];
+  const rows = await sql`update orders set status = ${next} where id = ${o.id} returning *`;
+  return c.json({ order: mapOrder(rows[0]) });
+});
+
+// ---------- reviews ----------
+app.post("/reviews", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const { revieweeId, rating, comment, orderId } = await c.req.json();
+  const rows = await sql`
+    insert into reviews (order_id, reviewer_id, reviewee_id, rating, comment)
+    values (${orderId ?? null}, ${uid}, ${revieweeId}, ${rating}, ${comment ?? ""}) returning *`;
+  // recompute reviewee aggregate
+  const agg = (await sql`select count(*)::int as n, coalesce(avg(rating),0) as avg from reviews where reviewee_id = ${revieweeId}`)[0];
+  await sql`update users set review_count = ${agg.n}, rating_avg = ${Number(agg.avg).toFixed(1)} where id = ${revieweeId}`;
+  const me = (await sql`select username from users where id = ${uid}`)[0];
+  await notify(revieweeId, { type: "review", actorId: uid, body: `${me?.username} left you a ${rating}★ review` });
+  return c.json({ review: mapReview(rows[0]) });
+});
+
+// ---------- notifications ----------
+app.get("/notifications", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`select * from notifications where user_id = ${uid} order by created_at desc limit 50`;
+  return c.json({ notifications: rows.map(mapNotification) });
+});
+
+app.post("/notifications/read", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  await sql`update notifications set read = true where user_id = ${uid}`;
+  return c.json({ ok: true });
+});
+
+// ---------- wallet ----------
+app.get("/wallet", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const rows = await sql`select * from wallet_transactions where user_id = ${uid} order by created_at desc`;
+  const balance = (rows as any[]).reduce((sum, r) => sum + Number(r.amount), 0);
+  return c.json({ transactions: rows.map(mapWallet), balance });
+});
+
+export const GET = handle(app);
+export const POST = handle(app);
+export const PATCH = handle(app);
+export const DELETE = handle(app);
+export const OPTIONS = handle(app);

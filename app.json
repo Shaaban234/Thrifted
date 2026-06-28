@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Thrifted",
+    "slug": "thrifted",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "thrifted",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#007782"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.thrifted.app"
+    },
+    "android": {
+      "package": "com.thrifted.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#007782"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Thrifted needs access to your photos so you can list items for sale."
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
