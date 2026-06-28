@@ -1,7 +1,12 @@
 // HTTP client for the Thrifted API (Neon-backed). Token is persisted in AsyncStorage.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3001";
+// Native (iOS/Android) builds must point at an absolute API URL via EXPO_PUBLIC_API_URL.
+// The web build is served from the same Vercel domain as the API, so it defaults to
+// same-origin ("") and calls /api on whatever host it was loaded from.
+const BASE =
+  process.env.EXPO_PUBLIC_API_URL ??
+  (typeof window !== "undefined" ? "" : "http://localhost:3001");
 const TOKEN_KEY = "thrifted.token";
 
 let token: string | null = null;
