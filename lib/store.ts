@@ -100,7 +100,7 @@ interface AppState {
   respondOffer: (messageId: string, accept: boolean) => void;
   createOrder: (itemId: string, paymentMethod: PaymentMethod) => Promise<Order>;
   advanceOrder: (orderId: string) => void;
-  addReview: (revieweeId: string, rating: number, comment: string) => void;
+  addReview: (revieweeId: string, rating: number, comment: string, orderId?: string) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -336,10 +336,10 @@ export const useStore = create<AppState>((set, get) => ({
     api.advanceOrder(orderId).catch(() => {});
   },
 
-  addReview: (revieweeId, rating, comment) => {
-    const review: Review = { id: nextId("r"), orderId: undefined, reviewerId: get().currentUserId, revieweeId, rating, comment, createdAt: new Date().toISOString() };
+  addReview: (revieweeId, rating, comment, orderId) => {
+    const review: Review = { id: nextId("r"), orderId, reviewerId: get().currentUserId, revieweeId, rating, comment, createdAt: new Date().toISOString() };
     set((s) => ({ reviews: [review, ...s.reviews] }));
-    api.createReview(revieweeId, rating, comment).catch(() => {});
+    api.createReview(revieweeId, rating, comment, orderId).catch(() => {});
   },
 
   markNotificationsRead: () => {

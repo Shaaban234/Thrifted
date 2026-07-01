@@ -356,6 +356,18 @@ app.get("/users/:id", async (c) => {
   return c.json({ user: mapUser(rows[0]), items: items.map(mapItem), reviews });
 });
 
+// Public follower / following lists for a user.
+app.get("/users/:id/connections", async (c) => {
+  const id = c.req.param("id");
+  const followers = (await sql`
+    select u.* from users u join follows f on f.follower_id = u.id
+    where f.followed_id = ${id} order by f.created_at desc`) as any[];
+  const following = (await sql`
+    select u.* from users u join follows f on f.followed_id = u.id
+    where f.follower_id = ${id} order by f.created_at desc`) as any[];
+  return c.json({ followers: followers.map(mapUser), following: following.map(mapUser) });
+});
+
 // ---------- favorites ----------
 app.get("/favorites", async (c) => {
   const uid = await requireUser(c);

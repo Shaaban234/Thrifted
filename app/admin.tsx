@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { formatPrice, timeAgo } from "@/lib/format";
 import type { Item, Order, User } from "@/lib/types";
 
-type Tab = "overview" | "users" | "items" | "orders";
+type Tab = "overview" | "users" | "items" | "featured" | "orders";
 type Overview = { users: number; admins: number; items: number; activeItems: number; soldItems: number; orders: number; gmv: number };
 type AdminUser = User & { itemCount: number; orderCount: number };
 type AdminItem = Item & { sellerUsername: string };
@@ -100,7 +100,29 @@ export default function Admin() {
     );
   };
 
-  const TABS: Tab[] = ["overview", "users", "items", "orders"];
+  const TABS: Tab[] = ["overview", "users", "items", "featured", "orders"];
+  const featuredItems = items.filter((i) => i.featured);
+
+  const renderItemRow = ({ item: it }: { item: AdminItem }) => (
+    <View className="flex-row items-center gap-3 bg-surface-alt rounded-xl p-3">
+      <View className="flex-1">
+        <Text className="text-ink font-semibold" numberOfLines={1}>{it.title}</Text>
+        <Text className="text-ink-muted text-xs" numberOfLines={1}>
+          {formatPrice(it.price)} · @{it.sellerUsername} · {it.status}
+        </Text>
+        <Text className="text-ink-faint text-xs">{it.featured ? "★ Featured · " : ""}{timeAgo(it.createdAt)}</Text>
+      </View>
+      <Pressable onPress={() => toggleFeatured(it)} hitSlop={6} className="p-2">
+        <Ionicons name={it.featured ? "star" : "star-outline"} size={20} color={it.featured ? "#F5A623" : "#9CA3AF"} />
+      </Pressable>
+      <Pressable onPress={() => router.push(`/item/${it.id}`)} hitSlop={6} className="p-2">
+        <Ionicons name="open-outline" size={19} className="text-ink-muted" />
+      </Pressable>
+      <Pressable onPress={() => deleteItem(it)} hitSlop={6} className="p-2">
+        <Ionicons name="trash-outline" size={20} color="#DC2626" />
+      </Pressable>
+    </View>
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -172,27 +194,21 @@ export default function Admin() {
           data={items}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ padding: 12, gap: 8 }}
-          renderItem={({ item: it }) => (
-            <View className="flex-row items-center gap-3 bg-surface-alt rounded-xl p-3">
-              <View className="flex-1">
-                <Text className="text-ink font-semibold" numberOfLines={1}>{it.title}</Text>
-                <Text className="text-ink-muted text-xs" numberOfLines={1}>
-                  {formatPrice(it.price)} · @{it.sellerUsername} · {it.status}
-                </Text>
-                <Text className="text-ink-faint text-xs">{it.featured ? "★ Featured · " : ""}{timeAgo(it.createdAt)}</Text>
-              </View>
-              <Pressable onPress={() => toggleFeatured(it)} hitSlop={6} className="p-2">
-                <Ionicons name={it.featured ? "star" : "star-outline"} size={20} color={it.featured ? "#F5A623" : "#9CA3AF"} />
-              </Pressable>
-              <Pressable onPress={() => router.push(`/item/${it.id}`)} hitSlop={6} className="p-2">
-                <Ionicons name="open-outline" size={19} className="text-ink-muted" />
-              </Pressable>
-              <Pressable onPress={() => deleteItem(it)} hitSlop={6} className="p-2">
-                <Ionicons name="trash-outline" size={20} color="#DC2626" />
-              </Pressable>
-            </View>
-          )}
+          renderItem={renderItemRow}
           ListEmptyComponent={<Empty label="No listings" />}
+        />
+      ) : tab === "featured" ? (
+        <FlatList
+          data={featuredItems}
+          keyExtractor={(i) => i.id}
+          contentContainerStyle={{ padding: 12, gap: 8 }}
+          ListHeaderComponent={
+            <Text className="text-ink-faint text-xs px-1 pb-2">
+              {featuredItems.length} featured {featuredItems.length === 1 ? "listing" : "listings"} · tap ★ to unfeature
+            </Text>
+          }
+          renderItem={renderItemRow}
+          ListEmptyComponent={<Empty label="No featured listings — tap ★ on any item to feature it" />}
         />
       ) : (
         <FlatList

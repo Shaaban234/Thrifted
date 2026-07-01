@@ -69,8 +69,8 @@ export default function Profile() {
 
         <View className="flex-row gap-8 mt-4">
           <Stat value={myItems.length} label="Listings" />
-          <Stat value={user.followers} label="Followers" />
-          <Stat value={user.following} label="Following" />
+          <Stat value={user.followers} label="Followers" onPress={() => router.push(`/connections/${currentUserId}?tab=followers` as any)} />
+          <Stat value={user.following} label="Following" onPress={() => router.push(`/connections/${currentUserId}?tab=following` as any)} />
         </View>
 
         {/* Edit profile + share */}
@@ -160,11 +160,11 @@ export default function Profile() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, onPress }: { value: number; label: string; onPress?: () => void }) {
   return (
-    <View className="items-center">
+    <Pressable disabled={!onPress} onPress={onPress} className="items-center active:opacity-70">
       <Text className="text-ink text-lg font-extrabold">{value}</Text>
       <Text className="text-ink-faint text-xs">{label}</Text>
-    </View>
+    </Pressable>
   );
 }

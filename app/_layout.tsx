@@ -33,6 +33,8 @@ export default function RootLayout() {
           <Stack.Screen name="chat/[id]" />
           <Stack.Screen name="checkout/[id]" options={{ presentation: "modal" }} />
           <Stack.Screen name="order/[id]" />
+          <Stack.Screen name="review/[orderId]" />
+          <Stack.Screen name="connections/[id]" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="admin" />
           <Stack.Screen name="legal/[doc]" />

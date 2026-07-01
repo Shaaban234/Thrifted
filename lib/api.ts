@@ -65,6 +65,7 @@ export const api = {
   featureItem: (id: string) => req(`/api/items/${id}/feature`, { method: "POST" }),
 
   getUser: (id: string) => req(`/api/users/${id}`),
+  getConnections: (userId: string) => req(`/api/users/${userId}/connections`),
   updateProfile: (body: any) => req("/api/users/me", { method: "PATCH", body: JSON.stringify(body) }),
   getFavorites: () => req("/api/favorites"),
   toggleFavorite: (itemId: string) => req(`/api/favorites/${itemId}`, { method: "POST" }),
@@ -83,7 +84,8 @@ export const api = {
   createOrder: (itemId: string, paymentMethod: "cod" | "card") =>
     req("/api/orders", { method: "POST", body: JSON.stringify({ itemId, paymentMethod }) }),
   advanceOrder: (orderId: string) => req(`/api/orders/${orderId}/advance`, { method: "POST" }),
-  createReview: (revieweeId: string, rating: number, comment: string) => req("/api/reviews", { method: "POST", body: JSON.stringify({ revieweeId, rating, comment }) }),
+  createReview: (revieweeId: string, rating: number, comment: string, orderId?: string) =>
+    req("/api/reviews", { method: "POST", body: JSON.stringify({ revieweeId, rating, comment, orderId }) }),
   getNotifications: () => req("/api/notifications"),
   markNotificationsRead: () => req("/api/notifications/read", { method: "POST" }),
   getWallet: () => req("/api/wallet"),

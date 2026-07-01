@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,7 +27,10 @@ export default function OrderScreen() {
   const item = useStore((s) => (order ? s.getItem(order.itemId) : undefined));
   const seller = useStore((s) => (order ? s.getUser(order.sellerId) : undefined));
   const advanceOrder = useStore((s) => s.advanceOrder);
-  const addReview = useStore((s) => s.addReview);
+  const currentUserId = useStore((s) => s.currentUserId);
+  const myReview = useStore((s) =>
+    order ? s.reviews.find((r) => r.orderId === order.id && r.reviewerId === currentUserId) : undefined
+  );
 
   if (!order || !item) {
     return (
@@ -42,10 +45,6 @@ export default function OrderScreen() {
   const currentStep = STEPS.findIndex((s) => s.key === order.status);
   const isComplete = order.status === "completed";
 
-  const leaveReview = () => {
-    addReview(order.sellerId, 5, "Great item, smooth transaction!");
-    Alert.alert("Thank you!", "Your 5★ review has been posted.");
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -118,8 +117,18 @@ export default function OrderScreen() {
               onPress={() => advanceOrder(order.id)}
             />
           )}
-          {isComplete && (
-            <Button label="Leave a review" icon="star-outline" onPress={leaveReview} />
+          {isComplete && !myReview && (
+            <Button
+              label="Leave a review"
+              icon="star-outline"
+              onPress={() => router.push(`/review/${order.id}` as any)}
+            />
+          )}
+          {isComplete && myReview && (
+            <View className="flex-row items-center justify-center gap-1.5 bg-primary-light rounded-full py-3">
+              <Ionicons name="checkmark-circle" size={16} color="#007782" />
+              <Text className="text-primary-dark font-semibold">You left a {myReview.rating}★ review</Text>
+            </View>
           )}
           <Button label="Back to home" variant="outline" onPress={() => router.replace("/(tabs)")} />
         </View>
