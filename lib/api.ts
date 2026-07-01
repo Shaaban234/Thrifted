@@ -1,4 +1,4 @@
-// HTTP client for the Thrifted API (Neon-backed). Token is persisted in AsyncStorage.
+// HTTP client for the NayaPurana API (Neon-backed). Token is persisted in AsyncStorage.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Native (iOS/Android) builds must point at an absolute API URL via EXPO_PUBLIC_API_URL.
@@ -62,6 +62,7 @@ export const api = {
   createItem: (body: any) => req("/api/items", { method: "POST", body: JSON.stringify(body) }),
   updateItem: (id: string, body: any) => req(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteItem: (id: string) => req(`/api/items/${id}`, { method: "DELETE" }),
+  featureItem: (id: string) => req(`/api/items/${id}/feature`, { method: "POST" }),
 
   getUser: (id: string) => req(`/api/users/${id}`),
   updateProfile: (body: any) => req("/api/users/me", { method: "PATCH", body: JSON.stringify(body) }),
@@ -92,6 +93,8 @@ export const api = {
   adminUsers: () => req("/api/admin/users"),
   adminItems: () => req("/api/admin/items"),
   adminOrders: () => req("/api/admin/orders"),
+  adminSetFeatured: (id: string, featured: boolean) =>
+    req(`/api/admin/items/${id}/feature`, { method: "PATCH", body: JSON.stringify({ featured }) }),
   adminDeleteItem: (id: string) => req(`/api/admin/items/${id}`, { method: "DELETE" }),
   adminDeleteUser: (id: string) => req(`/api/admin/users/${id}`, { method: "DELETE" }),
 };

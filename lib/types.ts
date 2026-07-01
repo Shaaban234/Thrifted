@@ -68,6 +68,7 @@ export interface Item {
   price: number; // in EUR
   photos: string[];
   status: ItemStatus;
+  featured: boolean;
   views: number;
   likes: number;
   createdAt: string;

@@ -1,4 +1,4 @@
-export const metadata = { title: "Thrifted API" };
+export const metadata = { title: "NayaPurana API" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

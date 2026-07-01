@@ -1,7 +1,7 @@
 // Chat content guard. Blocks messages that try to take the deal off-platform
 // (phone numbers, links, emails, files, or bank/wallet payment details) or that
 // contain profanity — in English and Roman Urdu — so conversations stay on
-// Thrifted where Buyer Protection applies.
+// NayaPurana where Buyer Protection applies.
 //
 // NOTE: keep this file in sync with server/lib/moderation.ts — the two packages
 // build separately, so the logic is intentionally duplicated (pure, no imports).
@@ -15,11 +15,11 @@ export interface GuardResult {
 }
 
 const MESSAGES: Record<GuardReason, string> = {
-  phone: "Phone numbers can't be shared in chat. Keep deals on Thrifted for Buyer Protection.",
+  phone: "Phone numbers can't be shared in chat. Keep deals on NayaPurana for Buyer Protection.",
   link: "Links can't be shared in chat.",
   email: "Email addresses can't be shared in chat.",
   file: "Files can't be shared in chat.",
-  payment: "Never share bank, card or wallet details (JazzCash, EasyPaisa, etc.). Pay securely through Thrifted.",
+  payment: "Never share bank, card or wallet details (JazzCash, EasyPaisa, etc.). Pay securely through NayaPurana.",
   profanity: "Let's keep it respectful — please remove any offensive language.",
 };
 

@@ -1,4 +1,4 @@
--- Thrifted database schema (Neon Postgres). Run via `npm run db:setup`.
+-- NayaPurana database schema (Neon Postgres). Run via `npm run db:setup`.
 -- Prices and amounts are stored in PKR as integers.
 
 create extension if not exists pgcrypto;
@@ -50,12 +50,14 @@ create table if not exists items (
   price        int not null,
   photos       text[] not null default '{}',
   status       text not null default 'active',
+  featured     boolean not null default false,
   views        int default 0,
   likes        int default 0,
   created_at   timestamptz default now()
 );
 create index if not exists items_seller_idx on items(seller_id);
 create index if not exists items_category_idx on items(category);
+alter table items add column if not exists featured boolean not null default false;
 
 create table if not exists favorites (
   user_id    uuid not null references users(id) on delete cascade,

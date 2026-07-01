@@ -43,9 +43,10 @@ export default function Settings() {
     {
       title: "Support",
       rows: [
-        { icon: "shield-checkmark-outline", label: "Buyer Protection" },
+        { icon: "shield-checkmark-outline", label: "Buyer Protection", route: "/legal/buyer-protection" },
         { icon: "help-circle-outline", label: "Help centre" },
-        { icon: "document-text-outline", label: "Terms & Privacy" },
+        { icon: "document-text-outline", label: "Terms & Conditions", route: "/legal/terms" },
+        { icon: "lock-closed-outline", label: "Privacy Policy", route: "/legal/privacy" },
       ],
     },
     // Admin-only section
@@ -92,7 +93,7 @@ export default function Settings() {
           <Text className="text-danger font-semibold ml-3">Log out</Text>
         </Pressable>
 
-        <Text className="text-ink-faint text-center text-xs my-6">Thrifted v1.0.0 · Demo build</Text>
+        <Text className="text-ink-faint text-center text-xs my-6">NayaPurana v1.0.0 · Demo build</Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -35,6 +35,7 @@ export default function RootLayout() {
           <Stack.Screen name="order/[id]" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="admin" />
+          <Stack.Screen name="legal/[doc]" />
           <Stack.Screen name="edit-profile" />
           <Stack.Screen name="shipping-address" />
           <Stack.Screen name="wallet" />

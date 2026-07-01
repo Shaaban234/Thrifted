@@ -2,8 +2,8 @@ import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 
 export default function Welcome() {
   return (
@@ -15,12 +15,9 @@ export default function Welcome() {
       />
       <SafeAreaView className="flex-1 justify-between px-6 py-6">
         <View className="flex-1 justify-center">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="repeat" size={40} color="#fff" />
-            <Text className="text-white text-5xl font-extrabold">Thrifted</Text>
-          </View>
-          <Text className="text-white/90 text-xl mt-4 font-medium leading-7">
-            Buy and sell pre-loved fashion.{"\n"}Give your wardrobe a second life.
+          <Logo size={34} light />
+          <Text className="text-white/90 text-xl mt-6 font-medium leading-7">
+            Purana ka naya ghar.{"\n"}Buy and sell pre-loved fashion.
           </Text>
         </View>
 
@@ -36,7 +33,10 @@ export default function Welcome() {
             onPress={() => router.push("/(auth)/login")}
           />
           <Text className="text-white/70 text-center text-xs mt-2">
-            By continuing you agree to our Terms & Privacy Policy
+            By continuing you agree to our{" "}
+            <Text className="font-semibold underline" onPress={() => router.push("/legal/terms" as any)}>Terms</Text>
+            {" & "}
+            <Text className="font-semibold underline" onPress={() => router.push("/legal/privacy" as any)}>Privacy Policy</Text>
           </Text>
         </View>
       </SafeAreaView>

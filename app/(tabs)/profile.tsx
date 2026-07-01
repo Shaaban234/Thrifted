@@ -82,7 +82,7 @@ export default function Profile() {
             <Text className="text-ink font-semibold text-center">Edit profile</Text>
           </Pressable>
           <Pressable
-            onPress={() => Share.share({ message: `Check out ${user.username}'s wardrobe on Thrifted!` })}
+            onPress={() => Share.share({ message: `Check out ${user.username}'s wardrobe on NayaPurana!` })}
             className="w-12 border border-surface-border rounded-full items-center justify-center active:bg-surface-alt"
           >
             <Ionicons name="share-social-outline" size={18} className="text-ink" />

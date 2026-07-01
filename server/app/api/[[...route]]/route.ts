@@ -55,6 +55,7 @@ const mapItem = (r: any) => ({
   price: Number(r.price),
   photos: r.photos ?? [],
   status: r.status,
+  featured: r.featured ?? false,
   views: r.views ?? 0,
   likes: r.likes ?? 0,
   createdAt: r.created_at,
@@ -164,7 +165,7 @@ app.post("/auth/signup", async (c) => {
   const rows = await sql`
     insert into users (email, password_hash, username, avatar_url, bio)
     values (${email}, ${hashPassword(password)}, ${username},
-            ${"https://i.pravatar.cc/200?u=" + encodeURIComponent(email)}, ${"New to Thrifted ✨"})
+            ${"https://i.pravatar.cc/200?u=" + encodeURIComponent(email)}, ${"New to NayaPurana ✨"})
     returning *`;
   const user = rows[0];
   const token = await signToken(user.id);
@@ -297,6 +298,22 @@ app.delete("/items/:id", async (c) => {
   if (owned[0].seller_id !== uid) return c.json({ error: "Forbidden" }, 403);
   await sql`delete from items where id = ${id}`;
   return c.json({ ok: true });
+});
+
+// Seller pays to feature their own listing (mock payment recorded as a wallet fee).
+app.post("/items/:id/feature", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const owned = await sql`select seller_id, title, featured from items where id = ${id}`;
+  if (!owned.length) return c.json({ error: "Not found" }, 404);
+  if (owned[0].seller_id !== uid) return c.json({ error: "Forbidden" }, 403);
+  if (owned[0].featured) return c.json({ error: "This listing is already featured" }, 400);
+  const FEATURE_FEE = 500; // keep in sync with lib/format.ts
+  await sql`insert into wallet_transactions (user_id, amount, type, label)
+            values (${uid}, ${-FEATURE_FEE}, 'fee', ${"Featured listing: " + owned[0].title})`;
+  const rows = await sql`update items set featured = true where id = ${id} returning *`;
+  return c.json({ item: mapItem(rows[0]) });
 });
 
 // ---------- users ----------
@@ -621,6 +638,15 @@ app.get("/admin/orders", async (c) => {
       sellerUsername: r.seller_username ?? "—",
     })),
   });
+});
+
+// Admin selects which listings are featured (no payment required).
+app.patch("/admin/items/:id/feature", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  const { featured } = await c.req.json().catch(() => ({}));
+  const rows = await sql`update items set featured = ${!!featured} where id = ${c.req.param("id")} returning *`;
+  if (!rows.length) return c.json({ error: "Not found" }, 404);
+  return c.json({ item: mapItem(rows[0]) });
 });
 
 // Remove any listing (cascades to favorites and its orders).

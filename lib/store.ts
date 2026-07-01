@@ -16,7 +16,7 @@ import type {
   ProfileUpdate,
   PaymentMethod,
 } from "./types";
-import { formatPrice } from "./format";
+import { formatPrice, FEATURE_FEE } from "./format";
 import { api, loadToken } from "./api";
 
 let idCounter = 1000;
@@ -84,10 +84,11 @@ interface AppState {
   markNotificationsRead: () => void;
 
   // item mutations (API-backed)
-  addItem: (item: Omit<Item, "id" | "createdAt" | "views" | "likes" | "status" | "sellerId">) => Promise<Item>;
+  addItem: (item: Omit<Item, "id" | "createdAt" | "views" | "likes" | "status" | "sellerId" | "featured">) => Promise<Item>;
   removeItem: (itemId: string) => void;
   setItemStatus: (itemId: string, status: ItemStatus) => void;
   updateItem: (itemId: string, partial: Partial<Item>) => void;
+  featureItem: (itemId: string) => Promise<void>;
   toggleFavorite: (itemId: string) => void;
   toggleFollow: (userId: string) => void;
 
@@ -252,6 +253,18 @@ export const useStore = create<AppState>((set, get) => ({
   updateItem: (itemId, partial) => {
     set((s) => ({ items: s.items.map((i) => (i.id === itemId ? { ...i, ...partial } : i)) }));
     api.updateItem(itemId, partial).catch(() => {});
+  },
+
+  featureItem: async (itemId) => {
+    // Server records the mock fee payment and flips featured=true.
+    const { item } = await api.featureItem(itemId);
+    set((s) => ({
+      items: s.items.map((i) => (i.id === itemId ? { ...i, ...item } : i)),
+      wallet: [
+        { id: nextId("w"), userId: get().currentUserId, amount: -FEATURE_FEE, type: "fee", label: "Featured listing", createdAt: new Date().toISOString() },
+        ...s.wallet,
+      ],
+    }));
   },
 
   // ----- messaging / orders / reviews (API-backed, optimistic UI) -----

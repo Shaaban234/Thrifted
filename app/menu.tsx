@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useStore } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
+import { Wordmark } from "@/components/Logo";
 import { CATEGORIES } from "@/lib/constants";
 
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -18,7 +19,11 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 const INFO_LINKS = ["How it works", "Help Centre", "Infoboard"];
 const COMPANY_LINKS = ["About us", "Sustainability", "Press", "Advertising"];
-const POLICY_LINKS = ["Trust and Safety", "Privacy Centre", "Terms & Conditions"];
+const POLICY_LINKS: { label: string; route?: string }[] = [
+  { label: "Trust and Safety", route: "/legal/buyer-protection" },
+  { label: "Privacy Policy", route: "/legal/privacy" },
+  { label: "Terms & Conditions", route: "/legal/terms" },
+];
 
 export default function Menu() {
   const logout = useStore((s) => s.logout);
@@ -45,7 +50,7 @@ export default function Menu() {
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-2">
-        <Text className="text-2xl font-extrabold text-primary tracking-tight">Thrifted</Text>
+        <Wordmark size={22} />
         <Pressable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={28} className="text-ink" />
         </Pressable>
@@ -81,8 +86,8 @@ export default function Menu() {
           >
             <Text className="text-primary-dark font-bold text-center text-base">My profile</Text>
           </Pressable>
-          <Pressable onPress={() => info("Your guide to Thrifted")} className="py-1">
-            <Text className="text-primary-dark font-semibold text-center">Your guide to Thrifted</Text>
+          <Pressable onPress={() => info("Your guide to NayaPurana")} className="py-1">
+            <Text className="text-primary-dark font-semibold text-center">Your guide to NayaPurana</Text>
           </Pressable>
         </View>
 
@@ -114,7 +119,11 @@ export default function Menu() {
 
         <Section title="Policies">
           {POLICY_LINKS.map((l) => (
-            <Row key={l} label={l} onPress={() => info(l)} />
+            <Row
+              key={l.label}
+              label={l.label}
+              onPress={() => (l.route ? (router.back(), router.push(l.route as any)) : info(l.label))}
+            />
           ))}
         </Section>
 
@@ -124,7 +133,7 @@ export default function Menu() {
           <Text className="text-danger font-semibold ml-3">Log out</Text>
         </Pressable>
 
-        <Text className="text-ink-faint text-center text-xs mt-4">Thrifted v1.0.0 · Demo build</Text>
+        <Text className="text-ink-faint text-center text-xs mt-4">NayaPurana v1.0.0 · Demo build</Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -42,7 +42,7 @@ export default function Signup() {
         className="flex-1 px-6 pt-6"
       >
         <Text className="text-3xl font-extrabold text-ink mb-1">Create account</Text>
-        <Text className="text-ink-muted mb-8">Join Thrifted and start selling today.</Text>
+        <Text className="text-ink-muted mb-8">Join NayaPurana and start selling today.</Text>
 
         <View className="gap-4">
           <TextField label="Username" placeholder="your_username" autoCapitalize="none" value={username} onChangeText={setUsername} />

@@ -122,7 +122,7 @@ export default function Chat() {
             <View className="flex-row items-start gap-2 bg-surface-alt rounded-xl p-3 mb-2">
               <Ionicons name="lock-closed" size={15} className="text-ink-muted" />
               <Text className="text-ink-faint text-xs flex-1 leading-4">
-                For your safety, keep payments and conversations on Thrifted. Phone numbers, links and files can't be shared, and never share bank or card details.
+                For your safety, keep payments and conversations on NayaPurana. Phone numbers, links and files can't be shared, and never share bank or card details.
               </Text>
             </View>
           }

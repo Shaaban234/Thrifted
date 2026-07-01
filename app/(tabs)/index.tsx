@@ -5,8 +5,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ItemCard } from "@/components/ItemCard";
+import { Wordmark } from "@/components/Logo";
 import { useStore } from "@/lib/store";
 import { CATEGORIES, DESIGNER_BRANDS } from "@/lib/constants";
+import { formatPrice } from "@/lib/format";
+import type { Item } from "@/lib/types";
 
 // Rotating hero banners (wardrobe / fashion themed).
 const HERO_IMAGES = [
@@ -43,11 +46,16 @@ export default function Home() {
     [items, category]
   );
 
+  const featured = useMemo(
+    () => visible.filter((i) => i.featured && i.status === "active"),
+    [visible]
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Top bar: wordmark + menu */}
       <View className="flex-row items-center justify-between px-4 pt-1 pb-2">
-        <Text className="text-2xl font-extrabold text-primary tracking-tight">Thrifted</Text>
+        <Wordmark size={22} />
         <View className="flex-row items-center gap-4">
           <Pressable onPress={() => router.push("/notifications")} hitSlop={8} className="relative">
             <Ionicons name="notifications-outline" size={26} className="text-ink" />
@@ -148,6 +156,24 @@ export default function Home() {
               </Pressable>
             </View>
 
+            {featured.length > 0 && (
+              <View className="mt-5">
+                <View className="flex-row items-center gap-1.5 px-4 mb-2">
+                  <Ionicons name="star" size={16} color="#007782" />
+                  <Text className="text-ink font-extrabold">Featured</Text>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+                >
+                  {featured.map((it) => (
+                    <FeaturedCard key={it.id} item={it} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <Text className="text-ink-muted text-sm mt-5 px-4">
               {visible.length} items · newest first
             </Text>
@@ -155,6 +181,22 @@ export default function Home() {
         }
       />
     </SafeAreaView>
+  );
+}
+
+function FeaturedCard({ item }: { item: Item }) {
+  return (
+    <Pressable onPress={() => router.push(`/item/${item.id}`)} style={{ width: 132 }}>
+      <View className="rounded-xl overflow-hidden bg-surface-alt aspect-[3/4] relative">
+        <Image source={{ uri: item.photos[0] }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={150} />
+        <View className="absolute top-1.5 left-1.5 flex-row items-center gap-1 bg-primary rounded-full px-2 py-0.5">
+          <Ionicons name="star" size={9} color="#fff" />
+          <Text className="text-white text-[9px] font-bold">Featured</Text>
+        </View>
+      </View>
+      <Text className="text-ink text-sm mt-1" numberOfLines={1}>{item.brand}</Text>
+      <Text className="text-ink font-bold text-sm">{formatPrice(item.price)}</Text>
+    </Pressable>
   );
 }
 

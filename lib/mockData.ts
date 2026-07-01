@@ -17,9 +17,10 @@ export const USERS: User[] = [
   { id: "u6", username: "emma_wardrobe", avatarUrl: avatar(20), bio: "Clearing out my closet!", location: "Frankfurt, DE", ratingAvg: 4.9, reviewCount: 34, followers: 150, following: 175, joinedAt: "2024-01-30" },
 ];
 
-type Seed = Omit<Item, "id" | "createdAt" | "status" | "views" | "likes"> & {
+type Seed = Omit<Item, "id" | "createdAt" | "status" | "views" | "likes" | "featured"> & {
   daysAgo: number;
   status?: Item["status"];
+  featured?: boolean;
 };
 
 const seeds: Seed[] = [
@@ -63,6 +64,7 @@ export const ITEMS: Item[] = seeds.map((s, i) => {
     price: toPkr(rest.price),
     id: `i${i + 1}`,
     status: status ?? "active",
+    featured: rest.featured ?? false,
     views: 20 + ((i * 37) % 480),
     likes: 1 + ((i * 13) % 60),
     createdAt: created.toISOString(),

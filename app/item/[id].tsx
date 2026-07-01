@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, useWindowDimensions, Share, Alert } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,7 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { StarRating } from "@/components/StarRating";
 import { ItemCard } from "@/components/ItemCard";
 import { useStore } from "@/lib/store";
-import { formatPrice, protectionFee, timeAgo } from "@/lib/format";
+import { formatPrice, protectionFee, timeAgo, FEATURE_FEE } from "@/lib/format";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -28,6 +28,8 @@ export default function ItemDetail() {
   const startConversation = useStore((s) => s.startConversation);
   const setItemStatus = useStore((s) => s.setItemStatus);
   const removeItem = useStore((s) => s.removeItem);
+  const featureItem = useStore((s) => s.featureItem);
+  const [featuring, setFeaturing] = useState(false);
 
   if (!item || !seller) {
     return (
@@ -48,7 +50,7 @@ export default function ItemDetail() {
 
   const shareItem = () => {
     Share.share({
-      message: `Check out "${item.title}" for ${formatPrice(item.price)} on Thrifted!`,
+      message: `Check out "${item.title}" for ${formatPrice(item.price)} on NayaPurana!`,
     });
   };
 
@@ -57,6 +59,31 @@ export default function ItemDetail() {
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => { removeItem(item.id); router.back(); } },
     ]);
+  };
+
+  const doFeature = () => {
+    if (!item) return;
+    Alert.alert(
+      "Feature this listing",
+      `Pay ${formatPrice(FEATURE_FEE)} to feature this listing at the top of the home page?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: `Pay ${formatPrice(FEATURE_FEE)}`,
+          onPress: async () => {
+            setFeaturing(true);
+            try {
+              await featureItem(item.id);
+              Alert.alert("Featured!", "Your listing now appears in the Featured section.");
+            } catch (e: any) {
+              Alert.alert("Couldn't feature", e?.message ?? "Please try again.");
+            } finally {
+              setFeaturing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const bigH = width * 0.82;
@@ -169,7 +196,9 @@ export default function ItemDetail() {
             <Text className="text-ink-muted text-xs mt-0.5 leading-5">
               Your purchase is covered by our refund policy, secure transactions and support.
             </Text>
-            <Text className="text-primary-dark text-xs font-semibold mt-1">How you're covered</Text>
+            <Pressable onPress={() => router.push("/legal/buyer-protection" as any)} hitSlop={6}>
+              <Text className="text-primary-dark text-xs font-semibold mt-1">How you're covered</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -222,6 +251,20 @@ export default function ItemDetail() {
                 <ManageBtn label="Mark sold" primary onPress={() => setItemStatus(item.id, "sold")} />
               )}
             </View>
+            {item.featured ? (
+              <View className="flex-row items-center justify-center gap-1.5 bg-primary-light rounded-full py-3">
+                <Ionicons name="star" size={15} color="#007782" />
+                <Text className="text-primary-dark font-bold">Featured listing</Text>
+              </View>
+            ) : item.status === "active" ? (
+              <View className="flex-row">
+                <ManageBtn
+                  label={featuring ? "Processing…" : `Feature listing · ${formatPrice(FEATURE_FEE)}`}
+                  primary
+                  onPress={doFeature}
+                />
+              </View>
+            ) : null}
             <ManageBtn label="Edit listing" onPress={() => router.push({ pathname: "/edit/[id]", params: { id: item.id } })} />
             <Pressable onPress={confirmDelete} className="py-2 active:opacity-60">
               <Text className="text-danger font-semibold text-center">Delete listing</Text>

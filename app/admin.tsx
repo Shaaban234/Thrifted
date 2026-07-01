@@ -69,6 +69,15 @@ export default function Admin() {
     ]);
   };
 
+  const toggleFeatured = async (it: AdminItem) => {
+    try {
+      const { item } = await api.adminSetFeatured(it.id, !it.featured);
+      setItems((prev) => prev.map((x) => (x.id === it.id ? { ...x, featured: item.featured } : x)));
+    } catch (e: any) {
+      Alert.alert("Couldn't update", e?.message ?? "Please try again.");
+    }
+  };
+
   const deleteUser = (u: AdminUser) => {
     Alert.alert(
       "Remove account",
@@ -170,8 +179,11 @@ export default function Admin() {
                 <Text className="text-ink-muted text-xs" numberOfLines={1}>
                   {formatPrice(it.price)} · @{it.sellerUsername} · {it.status}
                 </Text>
-                <Text className="text-ink-faint text-xs">{timeAgo(it.createdAt)}</Text>
+                <Text className="text-ink-faint text-xs">{it.featured ? "★ Featured · " : ""}{timeAgo(it.createdAt)}</Text>
               </View>
+              <Pressable onPress={() => toggleFeatured(it)} hitSlop={6} className="p-2">
+                <Ionicons name={it.featured ? "star" : "star-outline"} size={20} color={it.featured ? "#F5A623" : "#9CA3AF"} />
+              </Pressable>
               <Pressable onPress={() => router.push(`/item/${it.id}`)} hitSlop={6} className="p-2">
                 <Ionicons name="open-outline" size={19} className="text-ink-muted" />
               </Pressable>

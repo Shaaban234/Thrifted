@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Thrifted",
+    "name": "NayaPurana",
     "slug": "thrifted",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,7 +29,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Thrifted needs access to your photos so you can list items for sale."
+          "photosPermission": "NayaPurana needs access to your photos so you can list items for sale."
         }
       ],
       "expo-asset",

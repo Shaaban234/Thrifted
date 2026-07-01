@@ -20,6 +20,12 @@ export function ItemCard({ item }: { item: Item }) {
           contentFit="cover"
           transition={150}
         />
+        {item.featured && item.status === "active" && (
+          <View className="absolute top-2 left-2 flex-row items-center gap-1 bg-primary rounded-full px-2 py-0.5">
+            <Ionicons name="star" size={10} color="#fff" />
+            <Text className="text-white text-[10px] font-bold">Featured</Text>
+          </View>
+        )}
         <Pressable
           onPress={() => toggleFavorite(item.id)}
           hitSlop={8}

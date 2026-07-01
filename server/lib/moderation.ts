@@ -13,11 +13,11 @@ export interface GuardResult {
 }
 
 const MESSAGES: Record<GuardReason, string> = {
-  phone: "Phone numbers can't be shared in chat. Keep deals on Thrifted for Buyer Protection.",
+  phone: "Phone numbers can't be shared in chat. Keep deals on NayaPurana for Buyer Protection.",
   link: "Links can't be shared in chat.",
   email: "Email addresses can't be shared in chat.",
   file: "Files can't be shared in chat.",
-  payment: "Never share bank, card or wallet details (JazzCash, EasyPaisa, etc.). Pay securely through Thrifted.",
+  payment: "Never share bank, card or wallet details (JazzCash, EasyPaisa, etc.). Pay securely through NayaPurana.",
   profanity: "Let's keep it respectful — please remove any offensive language.",
 };
 

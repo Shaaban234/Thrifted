@@ -15,6 +15,9 @@ export function protectionFee(itemPrice: number): number {
 
 export const SHIPPING_FEE = 199; // PKR
 
+// Flat fee (PKR) a seller pays to feature one of their listings.
+export const FEATURE_FEE = 500;
+
 export function timeAgo(iso: string): string {
   const then = new Date(iso).getTime();
   const now = Date.now();
