@@ -6,20 +6,24 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { useStore } from "@/lib/store";
+import { useTheme } from "@/lib/theme";
 
 export default function RootLayout() {
   const [splashDone, setSplashDone] = useState(false);
   const restoreSession = useStore((s) => s.restoreSession);
+  const restoreTheme = useTheme((s) => s.restore);
+  const mode = useTheme((s) => s.mode);
 
-  // Restore a saved session (token) on launch.
+  // Restore saved session (token) and theme on launch.
   useEffect(() => {
     restoreSession();
-  }, [restoreSession]);
+    restoreTheme();
+  }, [restoreSession, restoreTheme]);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#fff" } }}>
+        <StatusBar style={mode === "dark" ? "light" : "dark"} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: mode === "dark" ? "#121214" : "#fff" } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
@@ -30,6 +34,9 @@ export default function RootLayout() {
           <Stack.Screen name="checkout/[id]" options={{ presentation: "modal" }} />
           <Stack.Screen name="order/[id]" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="admin" />
+          <Stack.Screen name="edit-profile" />
+          <Stack.Screen name="shipping-address" />
           <Stack.Screen name="wallet" />
           <Stack.Screen name="notifications" />
           <Stack.Screen name="menu" options={{ presentation: "modal" }} />

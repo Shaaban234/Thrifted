@@ -16,8 +16,25 @@ create table if not exists users (
   followers     int default 0,
   following     int default 0,
   is_admin      boolean default false,
+  -- personal details & shipping address (private; only returned to the user themselves)
+  full_name     text,
+  phone         text,
+  address_line1 text,
+  address_line2 text,
+  city          text,
+  postal_code   text,
+  country       text,
   joined_at     timestamptz default now()
 );
+
+-- Backfill the profile/address columns on databases created before they existed.
+alter table users add column if not exists full_name     text;
+alter table users add column if not exists phone         text;
+alter table users add column if not exists address_line1 text;
+alter table users add column if not exists address_line2 text;
+alter table users add column if not exists city          text;
+alter table users add column if not exists postal_code   text;
+alter table users add column if not exists country        text;
 
 create table if not exists items (
   id           uuid primary key default gen_random_uuid(),
@@ -84,8 +101,10 @@ create table if not exists orders (
   shipping_fee   int not null,
   total          int not null,
   status         text not null default 'paid',
+  payment_method text not null default 'card', -- 'card' | 'cod'
   created_at     timestamptz default now()
 );
+alter table orders add column if not exists payment_method text not null default 'card';
 
 create table if not exists reviews (
   id          uuid primary key default gen_random_uuid(),

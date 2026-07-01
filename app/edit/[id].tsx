@@ -1,9 +1,10 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { ItemForm } from "@/components/ItemForm";
 import { useStore } from "@/lib/store";
+import { preparePhotos } from "@/lib/photos";
 
 export default function EditItem() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -12,17 +13,17 @@ export default function EditItem() {
 
   if (!item) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Item not found.</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Text className="text-2xl font-extrabold text-ink">Edit listing</Text>
       </View>
@@ -39,19 +40,26 @@ export default function EditItem() {
           color: item.color,
           price: item.price,
         }}
-        onSubmit={(v) => {
-          updateItem(item.id, {
-            title: v.title,
-            description: v.description,
-            brand: v.brand,
-            category: v.category,
-            size: v.size,
-            condition: v.condition,
-            color: v.color,
-            price: v.price,
-            photos: v.photos,
-          });
-          router.back();
+        onSubmit={async (v) => {
+          try {
+            // Newly picked photos are large local images; compress them. Existing
+            // hosted http(s) URLs pass through preparePhotos untouched.
+            const photos = await preparePhotos(v.photos);
+            updateItem(item.id, {
+              title: v.title,
+              description: v.description,
+              brand: v.brand,
+              category: v.category,
+              size: v.size,
+              condition: v.condition,
+              color: v.color,
+              price: v.price,
+              photos,
+            });
+            router.back();
+          } catch (e: any) {
+            Alert.alert("Couldn't save", e?.message ?? "Please try again.");
+          }
         }}
       />
     </SafeAreaView>

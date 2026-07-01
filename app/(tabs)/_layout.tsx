@@ -2,9 +2,11 @@ import { Tabs, Redirect } from "expo-router";
 import { View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/lib/store";
+import { useTheme } from "@/lib/theme";
 
 export default function TabsLayout() {
   const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const isDark = useTheme((s) => s.mode === "dark");
   if (!isAuthenticated) return <Redirect href="/(auth)/welcome" />;
 
   return (
@@ -12,9 +14,10 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#007782",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarInactiveTintColor: isDark ? "#787C85" : "#9CA3AF",
         tabBarStyle: {
-          borderTopColor: "#E5E7EB",
+          backgroundColor: isDark ? "#121214" : "#FFFFFF",
+          borderTopColor: isDark ? "#2C2E34" : "#E5E7EB",
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,

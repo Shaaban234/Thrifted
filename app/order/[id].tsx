@@ -8,11 +8,17 @@ import { useStore } from "@/lib/store";
 import { formatPrice } from "@/lib/format";
 import type { OrderStatus } from "@/lib/types";
 
-const STEPS: { key: OrderStatus; label: string; icon: any; desc: string }[] = [
-  { key: "paid", label: "Paid", icon: "card", desc: "Payment held securely" },
+type Step = { key: OrderStatus; label: string; icon: any; desc: string };
+
+const stepsFor = (isCod: boolean): Step[] => [
+  isCod
+    ? { key: "paid", label: "Confirmed", icon: "receipt-outline", desc: "Pay cash on delivery" }
+    : { key: "paid", label: "Paid", icon: "card", desc: "Payment held securely" },
   { key: "shipped", label: "Shipped", icon: "cube", desc: "Seller posted your item" },
   { key: "delivered", label: "Delivered", icon: "home", desc: "Parcel arrived" },
-  { key: "completed", label: "Completed", icon: "checkmark-done", desc: "Funds released to seller" },
+  isCod
+    ? { key: "completed", label: "Completed", icon: "checkmark-done", desc: "Cash collected on delivery" }
+    : { key: "completed", label: "Completed", icon: "checkmark-done", desc: "Funds released to seller" },
 ];
 
 export default function OrderScreen() {
@@ -25,12 +31,14 @@ export default function OrderScreen() {
 
   if (!order || !item) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Order not found.</Text>
       </SafeAreaView>
     );
   }
 
+  const isCod = order.paymentMethod === "cod";
+  const STEPS = stepsFor(isCod);
   const currentStep = STEPS.findIndex((s) => s.key === order.status);
   const isComplete = order.status === "completed";
 
@@ -40,10 +48,10 @@ export default function OrderScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.replace("/(tabs)")} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Text className="text-lg font-extrabold text-ink">Order</Text>
       </View>
@@ -65,6 +73,10 @@ export default function OrderScreen() {
             <Text className="text-ink font-semibold" numberOfLines={1}>{item.title}</Text>
             <Text className="text-ink-muted text-sm">from {seller?.username}</Text>
             <Text className="text-ink font-bold mt-0.5">{formatPrice(order.total)}</Text>
+          </View>
+          <View className="flex-row items-center gap-1 bg-surface rounded-full px-2.5 py-1 border border-surface-border">
+            <Ionicons name={isCod ? "cash-outline" : "card-outline"} size={13} className="text-ink-muted" />
+            <Text className="text-ink-muted text-xs font-medium">{isCod ? "COD" : "Card"}</Text>
           </View>
         </View>
 

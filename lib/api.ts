@@ -64,6 +64,7 @@ export const api = {
   deleteItem: (id: string) => req(`/api/items/${id}`, { method: "DELETE" }),
 
   getUser: (id: string) => req(`/api/users/${id}`),
+  updateProfile: (body: any) => req("/api/users/me", { method: "PATCH", body: JSON.stringify(body) }),
   getFavorites: () => req("/api/favorites"),
   toggleFavorite: (itemId: string) => req(`/api/favorites/${itemId}`, { method: "POST" }),
   toggleFollow: (userId: string) => req(`/api/follows/${userId}`, { method: "POST" }),
@@ -78,10 +79,19 @@ export const api = {
 
   // orders, reviews, notifications, wallet
   getOrders: () => req("/api/orders"),
-  createOrder: (itemId: string) => req("/api/orders", { method: "POST", body: JSON.stringify({ itemId }) }),
+  createOrder: (itemId: string, paymentMethod: "cod" | "card") =>
+    req("/api/orders", { method: "POST", body: JSON.stringify({ itemId, paymentMethod }) }),
   advanceOrder: (orderId: string) => req(`/api/orders/${orderId}/advance`, { method: "POST" }),
   createReview: (revieweeId: string, rating: number, comment: string) => req("/api/reviews", { method: "POST", body: JSON.stringify({ revieweeId, rating, comment }) }),
   getNotifications: () => req("/api/notifications"),
   markNotificationsRead: () => req("/api/notifications/read", { method: "POST" }),
   getWallet: () => req("/api/wallet"),
+
+  // admin
+  adminOverview: () => req("/api/admin/overview"),
+  adminUsers: () => req("/api/admin/users"),
+  adminItems: () => req("/api/admin/items"),
+  adminOrders: () => req("/api/admin/orders"),
+  adminDeleteItem: (id: string) => req(`/api/admin/items/${id}`, { method: "DELETE" }),
+  adminDeleteUser: (id: string) => req(`/api/admin/users/${id}`, { method: "DELETE" }),
 };

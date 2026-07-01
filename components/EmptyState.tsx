@@ -12,7 +12,7 @@ export function EmptyState({
 }) {
   return (
     <View className="flex-1 items-center justify-center px-10 py-20">
-      <Ionicons name={icon} size={48} color="#9CA3AF" />
+      <Ionicons name={icon} size={48} className="text-ink-faint" />
       <Text className="text-ink font-semibold text-lg mt-4 text-center">{title}</Text>
       {subtitle && (
         <Text className="text-ink-muted text-center mt-1">{subtitle}</Text>

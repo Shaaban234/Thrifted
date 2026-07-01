@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Alert, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useStore } from "@/lib/store";
+import { useTheme } from "@/lib/theme";
 import { CATEGORIES } from "@/lib/constants";
 
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -22,6 +23,9 @@ const POLICY_LINKS = ["Trust and Safety", "Privacy Centre", "Terms & Conditions"
 export default function Menu() {
   const logout = useStore((s) => s.logout);
   const setFilters = useStore((s) => s.setFilters);
+  const mode = useTheme((s) => s.mode);
+  const toggleTheme = useTheme((s) => s.toggle);
+  const isDark = mode === "dark";
 
   const goCategory = (key: string) => {
     setFilters({ category: key }); // apply category to the search filters
@@ -38,16 +42,31 @@ export default function Menu() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-2">
         <Text className="text-2xl font-extrabold text-primary tracking-tight">Thrifted</Text>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="close" size={28} color="#1A1A1A" />
+          <Ionicons name="close" size={28} className="text-ink" />
         </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Appearance toggle */}
+        <Pressable
+          onPress={toggleTheme}
+          className="flex-row items-center mx-4 mt-2 px-4 py-3 rounded-xl bg-surface-alt active:opacity-80"
+        >
+          <Ionicons name={isDark ? "moon" : "sunny"} size={22} className="text-ink" />
+          <Text className="text-ink font-medium flex-1 ml-3">Dark mode</Text>
+          <Switch
+            value={isDark}
+            onValueChange={toggleTheme}
+            trackColor={{ true: "#007782", false: "#D1D5DB" }}
+            thumbColor="#FFFFFF"
+          />
+        </Pressable>
+
         {/* Primary actions */}
         <View className="px-4 pt-2 gap-3">
           <Pressable
@@ -135,9 +154,9 @@ function Row({
 }) {
   return (
     <Pressable onPress={onPress} className="flex-row items-center px-4 py-3.5 active:bg-surface-alt">
-      {icon && <Ionicons name={icon} size={22} color="#1A1A1A" />}
+      {icon && <Ionicons name={icon} size={22} className="text-ink" />}
       <Text className={`text-ink flex-1 ${icon ? "ml-3" : ""}`}>{label}</Text>
-      {chevron && <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />}
+      {chevron && <Ionicons name="chevron-forward" size={18} className="text-ink-faint" />}
     </Pressable>
   );
 }

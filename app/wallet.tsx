@@ -20,10 +20,10 @@ export default function Wallet() {
   const balance = useStore((s) => s.walletBalance());
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Text className="text-lg font-extrabold text-ink">Wallet</Text>
       </View>
@@ -53,7 +53,7 @@ export default function Wallet() {
         renderItem={({ item }) => (
           <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
             <View className="w-10 h-10 rounded-full bg-surface-alt items-center justify-center">
-              <Ionicons name={ICONS[item.type]} size={20} color="#6B7280" />
+              <Ionicons name={ICONS[item.type]} size={20} className="text-ink-muted" />
             </View>
             <View className="flex-1 ml-3">
               <Text className="text-ink font-medium">{item.label}</Text>

@@ -1,6 +1,6 @@
-// Supabase client — wired and ready. The app currently runs entirely on the mock
-// store (lib/store.ts), so these env vars are optional until you connect a real
-// backend. When EXPO_PUBLIC_SUPABASE_URL is set, `supabase` becomes a live client.
+// Supabase client — wired and ready but not currently used. Data/auth run on the
+// Neon-backed API (lib/api.ts). These env vars are optional; when
+// EXPO_PUBLIC_SUPABASE_URL is set, `supabase` becomes a live client.
 import "react-native-url-polyfill/auto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

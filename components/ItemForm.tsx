@@ -95,13 +95,13 @@ export function ItemForm({
               <View key={uri} className="relative">
                 <Image source={{ uri }} style={{ width: 96, height: 128, borderRadius: 12 }} contentFit="cover" />
                 <Pressable onPress={() => setPhotos((p) => p.filter((u) => u !== uri))} className="absolute -top-2 -right-2 bg-ink rounded-full p-1">
-                  <Ionicons name="close" size={14} color="#fff" />
+                  <Ionicons name="close" size={14} className="text-surface" />
                 </Pressable>
               </View>
             ))}
             {photos.length < 5 && (
               <Pressable onPress={pickPhoto} className="w-24 h-32 rounded-xl border-2 border-dashed border-surface-border items-center justify-center bg-surface-alt">
-                <Ionicons name="add" size={28} color="#9CA3AF" />
+                <Ionicons name="add" size={28} className="text-ink-faint" />
                 <Text className="text-ink-faint text-xs mt-1">Add</Text>
               </Pressable>
             )}
@@ -173,7 +173,7 @@ function AccordionRow({
         <Text className="text-ink text-base">{label}</Text>
         <View className="flex-row items-center gap-1.5">
           <Text className={value ? "text-primary-dark font-medium" : "text-ink-faint"}>{value ?? "Select"}</Text>
-          <Ionicons name={expanded ? "chevron-up" : "chevron-forward"} size={18} color="#9CA3AF" />
+          <Ionicons name={expanded ? "chevron-up" : "chevron-forward"} size={18} className="text-ink-faint" />
         </View>
       </Pressable>
       {expanded && (
@@ -181,7 +181,7 @@ function AccordionRow({
           {options.map((opt) => {
             const selected = opt.value === current;
             return (
-              <Pressable key={opt.value} onPress={() => onSelect(opt.value)} className={`rounded-full border px-4 py-2 ${selected ? "border-primary bg-primary-light" : "border-surface-border bg-white"}`}>
+              <Pressable key={opt.value} onPress={() => onSelect(opt.value)} className={`rounded-full border px-4 py-2 ${selected ? "border-primary bg-primary-light" : "border-surface-border bg-surface"}`}>
                 <Text className={`text-sm font-medium ${selected ? "text-primary-dark" : "text-ink"}`}>{opt.label}</Text>
               </Pressable>
             );

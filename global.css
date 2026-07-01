@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme tokens. `surface`/`ink` swap between light and dark; brand colors
+   (primary, danger, success, accent) stay constant. Values are space-separated
+   RGB channels so Tailwind can apply opacity via `<alpha-value>`.
+   Dark mode is class-based (see tailwind.config darkMode:"class") and toggled at
+   runtime via nativewind's colorScheme (see lib/theme.ts). */
+@layer base {
+  :root {
+    --color-surface: 255 255 255;      /* page background */
+    --color-surface-alt: 245 246 247;  /* cards, inputs (slightly recessed) */
+    --color-surface-border: 229 231 235;
+    --color-ink: 26 26 26;             /* primary text + icons */
+    --color-ink-muted: 107 114 128;
+    --color-ink-faint: 156 163 175;
+  }
+
+  .dark:root {
+    --color-surface: 18 18 20;         /* near-black page */
+    --color-surface-alt: 32 33 38;     /* cards sit *above* the page in dark */
+    --color-surface-border: 44 46 52;
+    --color-ink: 240 240 242;
+    --color-ink-muted: 163 167 176;
+    --color-ink-faint: 120 124 133;
+  }
+}

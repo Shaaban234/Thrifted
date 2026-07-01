@@ -6,7 +6,7 @@ type Variant = "primary" | "secondary" | "outline" | "ghost";
 const styles: Record<Variant, { box: string; text: string }> = {
   primary: { box: "bg-primary", text: "text-white" },
   secondary: { box: "bg-surface-alt", text: "text-ink" },
-  outline: { box: "bg-white border border-surface-border", text: "text-ink" },
+  outline: { box: "bg-surface border border-surface-border", text: "text-ink" },
   ghost: { box: "bg-transparent", text: "text-primary-dark" },
 };
 

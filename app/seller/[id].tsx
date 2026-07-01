@@ -24,7 +24,7 @@ export default function SellerProfile() {
 
   if (!user) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Seller not found.</Text>
       </SafeAreaView>
     );
@@ -34,7 +34,7 @@ export default function SellerProfile() {
     <View>
       <View className="flex-row items-center px-4 pt-1 pb-2">
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={26} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={26} className="text-ink" />
         </Pressable>
       </View>
 
@@ -44,7 +44,7 @@ export default function SellerProfile() {
         <StarRating rating={user.ratingAvg} size={15} showValue count={user.reviewCount} />
         {user.location && (
           <View className="flex-row items-center gap-1 mt-1">
-            <Ionicons name="location-outline" size={13} color="#9CA3AF" />
+            <Ionicons name="location-outline" size={13} className="text-ink-faint" />
             <Text className="text-ink-faint text-sm">{user.location}</Text>
           </View>
         )}
@@ -81,7 +81,7 @@ export default function SellerProfile() {
 
   if (tab === "reviews") {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
         <FlatList
           key="seller-reviews"
           data={reviews}
@@ -96,7 +96,7 @@ export default function SellerProfile() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <FlatList
         key="seller-grid"
         data={items}

@@ -31,7 +31,7 @@ export default function ItemDetail() {
 
   if (!item || !seller) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Item not found.</Text>
       </SafeAreaView>
     );
@@ -66,7 +66,7 @@ export default function ItemDetail() {
   for (let i = 0; i < sellerItems.length; i += 2) memberPairs.push(sellerItems.slice(i, i + 2));
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface">
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
         {/* Photo collage */}
         <View className="relative">
@@ -110,7 +110,7 @@ export default function ItemDetail() {
           {/* Heart + like count pill (over the big image) */}
           <Pressable
             onPress={() => toggleFavorite(item.id)}
-            className="absolute bg-white rounded-full flex-row items-center gap-1 px-3 py-2"
+            className="absolute bg-surface rounded-full flex-row items-center gap-1 px-3 py-2"
             style={{ top: bigH - 52, right: 12, elevation: 3 }}
           >
             <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={20} color={isFavorite ? "#FF6B6B" : "#1A1A1A"} />
@@ -122,7 +122,7 @@ export default function ItemDetail() {
         <View className="flex-row items-center justify-between px-4 pt-3">
           <Text className="text-ink-muted text-xs flex-1" numberOfLines={1}>{breadcrumb}</Text>
           <Pressable onPress={shareItem} hitSlop={8}>
-            <Ionicons name="flag-outline" size={16} color="#9CA3AF" />
+            <Ionicons name="flag-outline" size={16} className="text-ink-faint" />
           </Pressable>
         </View>
 
@@ -183,7 +183,7 @@ export default function ItemDetail() {
             <Text className="text-ink font-semibold">{seller.username}</Text>
             <StarRating rating={seller.ratingAvg} size={13} showValue count={seller.reviewCount} />
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <Ionicons name="chevron-forward" size={20} className="text-ink-faint" />
         </Pressable>
 
         {/* Trust rows */}
@@ -208,7 +208,7 @@ export default function ItemDetail() {
       </ScrollView>
 
       {/* Bottom action bar */}
-      <SafeAreaView edges={["bottom"]} className="absolute bottom-0 left-0 right-0 bg-white border-t border-surface-border">
+      <SafeAreaView edges={["bottom"]} className="absolute bottom-0 left-0 right-0 bg-surface border-t border-surface-border">
         {isOwn ? (
           <View className="px-4 py-3 gap-2">
             <View className="flex-row gap-2">
@@ -252,7 +252,7 @@ export default function ItemDetail() {
 
 function IconBtn({ icon, onPress, color = "#1A1A1A" }: { icon: any; onPress: () => void; color?: string }) {
   return (
-    <Pressable onPress={onPress} className="bg-white/90 rounded-full w-10 h-10 items-center justify-center">
+    <Pressable onPress={onPress} className="bg-surface/90 rounded-full w-10 h-10 items-center justify-center">
       <Ionicons name={icon} size={22} color={color} />
     </Pressable>
   );
@@ -281,7 +281,7 @@ function DetailRow({ label, value, link }: { label: string; value: string; link?
 function TrustRow({ icon, title, subtitle }: { icon: any; title: string; subtitle?: string }) {
   return (
     <View className="flex-row items-center gap-3">
-      <Ionicons name={icon} size={20} color="#6B7280" />
+      <Ionicons name={icon} size={20} className="text-ink-muted" />
       <View className="flex-1">
         <Text className="text-ink text-sm font-medium">{title}</Text>
         {subtitle && <Text className="text-ink-faint text-xs">{subtitle}</Text>}

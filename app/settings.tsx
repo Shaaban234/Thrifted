@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 
 export default function Settings() {
   const logout = useStore((s) => s.logout);
+  const isAdmin = useStore((s) => s.isAdmin);
 
   const doLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -21,13 +22,13 @@ export default function Settings() {
     ]);
   };
 
-  const groups: { title: string; rows: { icon: any; label: string }[] }[] = [
+  const groups: { title: string; rows: { icon: any; label: string; route?: string }[] }[] = [
     {
       title: "Account",
       rows: [
-        { icon: "person-outline", label: "Edit profile" },
+        { icon: "person-outline", label: "Edit profile", route: "/edit-profile" },
         { icon: "card-outline", label: "Payment methods" },
-        { icon: "location-outline", label: "Shipping addresses" },
+        { icon: "location-outline", label: "Shipping addresses", route: "/shipping-address" },
         { icon: "notifications-outline", label: "Notifications" },
       ],
     },
@@ -47,13 +48,17 @@ export default function Settings() {
         { icon: "document-text-outline", label: "Terms & Privacy" },
       ],
     },
+    // Admin-only section
+    ...(isAdmin
+      ? [{ title: "Admin", rows: [{ icon: "shield-checkmark", label: "Admin panel", route: "/admin" }] }]
+      : []),
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Text className="text-lg font-extrabold text-ink">Settings</Text>
       </View>
@@ -67,12 +72,16 @@ export default function Settings() {
             {group.rows.map((row) => (
               <Pressable
                 key={row.label}
-                onPress={() => Alert.alert(row.label, "(Demo) This screen isn't built out yet.")}
+                onPress={() =>
+                  row.route
+                    ? router.push(row.route as any)
+                    : Alert.alert(row.label, "(Demo) This screen isn't built out yet.")
+                }
                 className="flex-row items-center px-4 py-3.5 active:bg-surface-alt"
               >
-                <Ionicons name={row.icon} size={22} color="#1A1A1A" />
+                <Ionicons name={row.icon} size={22} className="text-ink" />
                 <Text className="text-ink flex-1 ml-3">{row.label}</Text>
-                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={18} className="text-ink-faint" />
               </Pressable>
             ))}
           </View>

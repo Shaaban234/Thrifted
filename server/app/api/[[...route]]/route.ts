@@ -3,6 +3,7 @@ import { handle } from "hono/vercel";
 import { cors } from "hono/cors";
 import { sql } from "@/lib/db";
 import { hashPassword, verifyPassword, signToken, getUserId } from "@/lib/auth";
+import { checkMessage } from "@/lib/moderation";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,21 @@ const mapUser = (r: any) => ({
   following: r.following ?? 0,
   isAdmin: r.is_admin ?? false,
   joinedAt: r.joined_at,
+});
+
+// Like mapUser but includes private fields (email, phone, shipping address).
+// Only ever returned to the authenticated user about themselves — never in
+// public listings, so other users can't see someone's address or phone.
+const mapMe = (r: any) => ({
+  ...mapUser(r),
+  email: r.email,
+  fullName: r.full_name ?? "",
+  phone: r.phone ?? "",
+  addressLine1: r.address_line1 ?? "",
+  addressLine2: r.address_line2 ?? "",
+  city: r.city ?? "",
+  postalCode: r.postal_code ?? "",
+  country: r.country ?? "",
 });
 
 const mapItem = (r: any) => ({
@@ -75,6 +91,7 @@ const mapOrder = (r: any) => ({
   shippingFee: Number(r.shipping_fee),
   total: Number(r.total),
   status: r.status,
+  paymentMethod: r.payment_method ?? "card",
   createdAt: r.created_at,
 });
 
@@ -113,6 +130,14 @@ async function requireUser(c: any): Promise<string | null> {
   return getUserId(c.req.header("Authorization"));
 }
 
+// admin helper — resolves the user id only if they are an admin, else null.
+async function requireAdmin(c: any): Promise<string | null> {
+  const uid = await requireUser(c);
+  if (!uid) return null;
+  const rows = await sql`select is_admin from users where id = ${uid}`;
+  return rows.length && rows[0].is_admin ? uid : null;
+}
+
 // fire-and-forget notification (never notifies yourself)
 async function notify(
   userId: string,
@@ -143,7 +168,7 @@ app.post("/auth/signup", async (c) => {
     returning *`;
   const user = rows[0];
   const token = await signToken(user.id);
-  return c.json({ token, user: mapUser(user) });
+  return c.json({ token, user: mapMe(user) });
 });
 
 app.post("/auth/login", async (c) => {
@@ -156,7 +181,7 @@ app.post("/auth/login", async (c) => {
     return c.json({ error: "Invalid email or password" }, 401);
 
   const token = await signToken(user.id);
-  return c.json({ token, user: mapUser(user) });
+  return c.json({ token, user: mapMe(user) });
 });
 
 app.get("/auth/me", async (c) => {
@@ -167,7 +192,7 @@ app.get("/auth/me", async (c) => {
   const favs = await sql`select item_id from favorites where user_id = ${uid}`;
   const follows = await sql`select followed_id from follows where follower_id = ${uid}`;
   return c.json({
-    user: mapUser(rows[0]),
+    user: mapMe(rows[0]),
     favorites: favs.map((f: any) => f.item_id),
     follows: follows.map((f: any) => f.followed_id),
   });
@@ -223,10 +248,14 @@ app.post("/items", async (c) => {
   const uid = await requireUser(c);
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
   const b = await c.req.json();
+  // price column is an integer (PKR). The client uses a decimal keypad, so coerce
+  // to a whole number here to avoid "invalid input syntax for type integer".
+  const price = Math.round(Number(b.price));
+  if (!Number.isFinite(price)) return c.json({ error: "Invalid price" }, 400);
   const rows = await sql`
     insert into items (seller_id, title, description, brand, category, subcategory, size, condition, color, price, photos)
     values (${uid}, ${b.title}, ${b.description ?? ""}, ${b.brand}, ${b.category}, ${b.subcategory ?? null},
-            ${b.size}, ${b.condition}, ${b.color ?? "Multi"}, ${b.price}, ${b.photos ?? []})
+            ${b.size}, ${b.condition}, ${b.color ?? "Multi"}, ${price}, ${b.photos ?? []})
     returning *`;
   return c.json({ item: mapItem(rows[0]) });
 });
@@ -239,6 +268,9 @@ app.patch("/items/:id", async (c) => {
   if (!owned.length) return c.json({ error: "Not found" }, 404);
   if (owned[0].seller_id !== uid) return c.json({ error: "Forbidden" }, 403);
   const b = await c.req.json();
+  // price is an integer column; round any decimal from the client (null = leave unchanged).
+  const price = b.price == null ? null : Math.round(Number(b.price));
+  if (price != null && !Number.isFinite(price)) return c.json({ error: "Invalid price" }, 400);
   const rows = await sql`
     update items set
       title = coalesce(${b.title ?? null}, title),
@@ -249,7 +281,7 @@ app.patch("/items/:id", async (c) => {
       size = coalesce(${b.size ?? null}, size),
       condition = coalesce(${b.condition ?? null}, condition),
       color = coalesce(${b.color ?? null}, color),
-      price = coalesce(${b.price ?? null}, price),
+      price = coalesce(${price}, price),
       status = coalesce(${b.status ?? null}, status),
       photos = coalesce(${b.photos ?? null}, photos)
     where id = ${id} returning *`;
@@ -268,6 +300,37 @@ app.delete("/items/:id", async (c) => {
 });
 
 // ---------- users ----------
+// Update the authenticated user's own profile + shipping address.
+// Only provided fields change (coalesce keeps the rest). Must be declared before
+// the /users/:id route so "me" isn't captured as an id.
+app.patch("/users/me", async (c) => {
+  const uid = await requireUser(c);
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+  const b = await c.req.json().catch(() => ({}));
+
+  // Username is unique — reject if another user already has the requested one.
+  if (b.username != null) {
+    const taken = await sql`select 1 from users where username = ${b.username} and id <> ${uid}`;
+    if (taken.length) return c.json({ error: "Username already taken" }, 409);
+  }
+
+  const rows = await sql`
+    update users set
+      username      = coalesce(${b.username ?? null}, username),
+      bio           = coalesce(${b.bio ?? null}, bio),
+      location      = coalesce(${b.location ?? null}, location),
+      avatar_url    = coalesce(${b.avatarUrl ?? null}, avatar_url),
+      full_name     = coalesce(${b.fullName ?? null}, full_name),
+      phone         = coalesce(${b.phone ?? null}, phone),
+      address_line1 = coalesce(${b.addressLine1 ?? null}, address_line1),
+      address_line2 = coalesce(${b.addressLine2 ?? null}, address_line2),
+      city          = coalesce(${b.city ?? null}, city),
+      postal_code   = coalesce(${b.postalCode ?? null}, postal_code),
+      country       = coalesce(${b.country ?? null}, country)
+    where id = ${uid} returning *`;
+  return c.json({ user: mapMe(rows[0]) });
+});
+
 app.get("/users/:id", async (c) => {
   const rows = await sql`select * from users where id = ${c.req.param("id")}`;
   if (!rows.length) return c.json({ error: "Not found" }, 404);
@@ -376,6 +439,9 @@ app.post("/conversations/:id/messages", async (c) => {
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
   const convoId = c.req.param("id");
   const { body } = await c.req.json();
+  // Guard against off-platform contact sharing and profanity.
+  const check = checkMessage(String(body ?? ""));
+  if (!check.ok) return c.json({ error: check.message, reason: check.reason }, 400);
   const rows = await sql`
     insert into messages (conversation_id, sender_id, body, type)
     values (${convoId}, ${uid}, ${body}, 'text') returning *`;
@@ -415,7 +481,8 @@ app.post("/messages/:id/offer-response", async (c) => {
 app.post("/orders", async (c) => {
   const uid = await requireUser(c);
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
-  const { itemId } = await c.req.json();
+  const { itemId, paymentMethod } = await c.req.json();
+  const method = paymentMethod === "cod" ? "cod" : "card";
   const item = (await sql`select * from items where id = ${itemId}`)[0];
   if (!item) return c.json({ error: "Item not found" }, 404);
   const amount = Number(item.price);
@@ -424,13 +491,17 @@ app.post("/orders", async (c) => {
   const total = amount + protectionFee + shippingFee;
 
   const order = (await sql`
-    insert into orders (item_id, buyer_id, seller_id, amount, protection_fee, shipping_fee, total, status)
-    values (${itemId}, ${uid}, ${item.seller_id}, ${amount}, ${protectionFee}, ${shippingFee}, ${total}, 'paid')
+    insert into orders (item_id, buyer_id, seller_id, amount, protection_fee, shipping_fee, total, status, payment_method)
+    values (${itemId}, ${uid}, ${item.seller_id}, ${amount}, ${protectionFee}, ${shippingFee}, ${total}, 'paid', ${method})
     returning *`)[0];
 
   await sql`update items set status = 'sold' where id = ${itemId}`;
-  await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${uid}, ${-total}, 'purchase', ${"Purchase: " + item.title}, ${order.id})`;
-  await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${item.seller_id}, ${amount}, 'sale', ${"Sale: " + item.title}, ${order.id})`;
+  // Card payments move money through the in-app wallet now; cash-on-delivery is
+  // collected in person on delivery, so it doesn't touch the wallet.
+  if (method === "card") {
+    await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${uid}, ${-total}, 'purchase', ${"Purchase: " + item.title}, ${order.id})`;
+    await sql`insert into wallet_transactions (user_id, amount, type, label, order_id) values (${item.seller_id}, ${amount}, 'sale', ${"Sale: " + item.title}, ${order.id})`;
+  }
   const me = (await sql`select username from users where id = ${uid}`)[0];
   await notify(item.seller_id, { type: "sold", actorId: uid, itemId, body: `${me?.username} bought your ${item.title}` });
   return c.json({ order: mapOrder(order) });
@@ -492,6 +563,82 @@ app.get("/wallet", async (c) => {
   const rows = await sql`select * from wallet_transactions where user_id = ${uid} order by created_at desc`;
   const balance = (rows as any[]).reduce((sum, r) => sum + Number(r.amount), 0);
   return c.json({ transactions: rows.map(mapWallet), balance });
+});
+
+// ---------- admin ----------
+// All admin routes require the caller to be an admin (is_admin = true).
+app.get("/admin/overview", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  const [u] = await sql`select count(*)::int n, count(*) filter (where is_admin)::int admins from users`;
+  const [it] = await sql`
+    select count(*)::int n,
+      count(*) filter (where status = 'active')::int active,
+      count(*) filter (where status = 'sold')::int sold
+    from items`;
+  const [o] = await sql`select count(*)::int n, coalesce(sum(total), 0)::int gmv from orders`;
+  return c.json({
+    users: u.n, admins: u.admins,
+    items: it.n, activeItems: it.active, soldItems: it.sold,
+    orders: o.n, gmv: o.gmv,
+  });
+});
+
+app.get("/admin/users", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  const rows = (await sql`
+    select u.*,
+      (select count(*)::int from items i where i.seller_id = u.id) as item_count,
+      (select count(*)::int from orders o where o.buyer_id = u.id) as order_count
+    from users u order by joined_at desc`) as any[];
+  return c.json({
+    users: rows.map((r) => ({ ...mapMe(r), itemCount: r.item_count, orderCount: r.order_count })),
+  });
+});
+
+app.get("/admin/items", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  const rows = (await sql`
+    select i.*, u.username as seller_username
+    from items i left join users u on u.id = i.seller_id
+    order by i.created_at desc`) as any[];
+  return c.json({ items: rows.map((r) => ({ ...mapItem(r), sellerUsername: r.seller_username ?? "—" })) });
+});
+
+app.get("/admin/orders", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  const rows = (await sql`
+    select o.*, i.title as item_title, b.username as buyer_username, s.username as seller_username
+    from orders o
+    left join items i on i.id = o.item_id
+    left join users b on b.id = o.buyer_id
+    left join users s on s.id = o.seller_id
+    order by o.created_at desc`) as any[];
+  return c.json({
+    orders: rows.map((r) => ({
+      ...mapOrder(r),
+      itemTitle: r.item_title ?? "(deleted item)",
+      buyerUsername: r.buyer_username ?? "—",
+      sellerUsername: r.seller_username ?? "—",
+    })),
+  });
+});
+
+// Remove any listing (cascades to favorites and its orders).
+app.delete("/admin/items/:id", async (c) => {
+  if (!(await requireAdmin(c))) return c.json({ error: "Forbidden" }, 403);
+  await sql`delete from items where id = ${c.req.param("id")}`;
+  return c.json({ ok: true });
+});
+
+// Remove any account (cascades to their items, orders, wallet, etc.).
+// Admins can't delete their own account here, to avoid locking themselves out.
+app.delete("/admin/users/:id", async (c) => {
+  const adminId = await requireAdmin(c);
+  if (!adminId) return c.json({ error: "Forbidden" }, 403);
+  const target = c.req.param("id");
+  if (target === adminId) return c.json({ error: "You can't delete your own admin account" }, 400);
+  await sql`delete from users where id = ${target}`;
+  return c.json({ ok: true });
 });
 
 export const GET = handle(app);

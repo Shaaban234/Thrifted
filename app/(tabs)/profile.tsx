@@ -34,10 +34,10 @@ export default function Profile() {
       {/* Top actions */}
       <View className="flex-row justify-end px-4 pt-1 gap-4">
         <Pressable onPress={() => router.push("/wallet")} hitSlop={6}>
-          <Ionicons name="wallet-outline" size={24} color="#1A1A1A" />
+          <Ionicons name="wallet-outline" size={24} className="text-ink" />
         </Pressable>
         <Pressable onPress={() => router.push("/settings")} hitSlop={6}>
-          <Ionicons name="settings-outline" size={24} color="#1A1A1A" />
+          <Ionicons name="settings-outline" size={24} className="text-ink" />
         </Pressable>
       </View>
 
@@ -48,8 +48,8 @@ export default function Profile() {
           <Text className="text-xl font-extrabold text-ink">{user.username}</Text>
           {isAdmin && (
             <View className="flex-row items-center gap-1 bg-ink rounded-full px-2.5 py-1">
-              <Ionicons name="shield-checkmark" size={12} color="#fff" />
-              <Text className="text-white text-xs font-bold">Admin</Text>
+              <Ionicons name="shield-checkmark" size={12} className="text-surface" />
+              <Text className="text-surface text-xs font-bold">Admin</Text>
             </View>
           )}
         </View>
@@ -61,7 +61,7 @@ export default function Profile() {
         </View>
         {user.location && (
           <View className="flex-row items-center gap-1 mt-1">
-            <Ionicons name="location-outline" size={13} color="#9CA3AF" />
+            <Ionicons name="location-outline" size={13} className="text-ink-faint" />
             <Text className="text-ink-faint text-sm">{user.location}</Text>
           </View>
         )}
@@ -76,7 +76,7 @@ export default function Profile() {
         {/* Edit profile + share */}
         <View className="flex-row gap-2 mt-4 w-full">
           <Pressable
-            onPress={() => router.push("/settings")}
+            onPress={() => router.push("/edit-profile" as any)}
             className="flex-1 border border-surface-border rounded-full py-2.5 active:bg-surface-alt"
           >
             <Text className="text-ink font-semibold text-center">Edit profile</Text>
@@ -85,7 +85,7 @@ export default function Profile() {
             onPress={() => Share.share({ message: `Check out ${user.username}'s wardrobe on Thrifted!` })}
             className="w-12 border border-surface-border rounded-full items-center justify-center active:bg-surface-alt"
           >
-            <Ionicons name="share-social-outline" size={18} color="#1A1A1A" />
+            <Ionicons name="share-social-outline" size={18} className="text-ink" />
           </Pressable>
         </View>
       </View>
@@ -121,7 +121,7 @@ export default function Profile() {
 
   if (tab === "reviews") {
     return (
-      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
         <FlatList
           key="profile-reviews"
           data={myReviews}
@@ -137,7 +137,7 @@ export default function Profile() {
 
   const gridData = tab === "listings" ? myItems : favItems;
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <FlatList
         key="profile-grid"
         data={gridData}

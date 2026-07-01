@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Avatar } from "@/components/Avatar";
 import { useStore } from "@/lib/store";
 import { formatPrice, timeAgo } from "@/lib/format";
+import { checkMessage } from "@/lib/moderation";
 import type { Message } from "@/lib/types";
 
 export default function Chat() {
@@ -34,7 +35,7 @@ export default function Chat() {
 
   if (!convo) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Conversation not found.</Text>
       </SafeAreaView>
     );
@@ -46,8 +47,14 @@ export default function Chat() {
   const isSeller = convo.sellerId === currentUserId;
 
   const send = () => {
-    if (!text.trim()) return;
-    sendMessage(convo.id, text.trim());
+    const body = text.trim();
+    if (!body) return;
+    const check = checkMessage(body);
+    if (!check.ok) {
+      Alert.alert("Message blocked", check.message);
+      return;
+    }
+    sendMessage(convo.id, body);
     setText("");
   };
 
@@ -71,11 +78,11 @@ export default function Chat() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center px-3 py-2 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Avatar url={other?.avatarUrl} name={other?.username} size={36} />
         <Text className="text-ink font-semibold ml-2 flex-1">{other?.username}</Text>
@@ -113,9 +120,9 @@ export default function Chat() {
           contentContainerStyle={{ padding: 12, gap: 8 }}
           ListHeaderComponent={
             <View className="flex-row items-start gap-2 bg-surface-alt rounded-xl p-3 mb-2">
-              <Ionicons name="lock-closed" size={15} color="#6B7280" />
+              <Ionicons name="lock-closed" size={15} className="text-ink-muted" />
               <Text className="text-ink-faint text-xs flex-1 leading-4">
-                For your safety, keep payments and conversations on Thrifted. Never share bank or card details.
+                For your safety, keep payments and conversations on Thrifted. Phone numbers, links and files can't be shared, and never share bank or card details.
               </Text>
             </View>
           }
@@ -186,7 +193,7 @@ function Bubble({
               <Pressable onPress={onAccept} className="bg-primary rounded-full px-4 py-1.5">
                 <Text className="text-white text-sm font-semibold">Accept</Text>
               </Pressable>
-              <Pressable onPress={onDecline} className="bg-white border border-surface-border rounded-full px-4 py-1.5">
+              <Pressable onPress={onDecline} className="bg-surface border border-surface-border rounded-full px-4 py-1.5">
                 <Text className="text-ink text-sm font-semibold">Decline</Text>
               </Pressable>
             </View>

@@ -37,11 +37,11 @@ export default function Filter() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="w-16">
-          <Ionicons name="close" size={26} color="#1A1A1A" />
+          <Ionicons name="close" size={26} className="text-ink" />
         </Pressable>
         <Text className="text-base font-bold text-ink">Filter</Text>
         <Pressable onPress={clearFilters} hitSlop={8} className="w-16 items-end">
@@ -63,7 +63,7 @@ export default function Filter() {
                   <Text className={row.current && row.field !== "sort" ? "text-primary-dark" : filters.sort !== "relevance" && row.field === "sort" ? "text-primary-dark" : "text-ink-muted"}>
                     {row.display}
                   </Text>
-                  <Ionicons name={open ? "chevron-up" : "chevron-forward"} size={18} color="#9CA3AF" />
+                  <Ionicons name={open ? "chevron-up" : "chevron-forward"} size={18} className="text-ink-faint" />
                 </View>
               </Pressable>
 
@@ -79,7 +79,7 @@ export default function Filter() {
                           setExpanded(null);
                         }}
                         className={`rounded-full border px-4 py-2 ${
-                          selected ? "border-primary bg-primary-light" : "border-surface-border bg-white"
+                          selected ? "border-primary bg-primary-light" : "border-surface-border bg-surface"
                         }`}
                       >
                         <Text className={`text-sm font-medium ${selected ? "text-primary-dark" : "text-ink"}`}>

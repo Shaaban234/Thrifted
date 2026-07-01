@@ -13,6 +13,8 @@ import type {
   AppNotification,
   WalletTransaction,
   Filters,
+  ProfileUpdate,
+  PaymentMethod,
 } from "./types";
 import { formatPrice } from "./format";
 import { api, loadToken } from "./api";
@@ -50,6 +52,7 @@ interface AppState {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (partial: ProfileUpdate) => Promise<void>;
 
   // filters
   filters: Filters;
@@ -94,7 +97,7 @@ interface AppState {
   sendMessage: (conversationId: string, body: string) => void;
   sendOffer: (conversationId: string, amount: number) => void;
   respondOffer: (messageId: string, accept: boolean) => void;
-  createOrder: (itemId: string) => Promise<Order>;
+  createOrder: (itemId: string, paymentMethod: PaymentMethod) => Promise<Order>;
   advanceOrder: (orderId: string) => void;
   addReview: (revieweeId: string, rating: number, comment: string) => void;
 }
@@ -152,6 +155,11 @@ export const useStore = create<AppState>((set, get) => ({
     const { user } = await api.signup(email, password, username);
     set((s) => ({ isAuthenticated: true, currentUserId: user.id, isAdmin: !!user.isAdmin, users: mergeUsers(s.users, [user]) }));
     await get().refresh();
+  },
+
+  updateProfile: async (partial) => {
+    const { user } = await api.updateProfile(partial);
+    set((s) => ({ users: mergeUsers(s.users, [user]) }));
   },
 
   logout: () => {
@@ -287,15 +295,19 @@ export const useStore = create<AppState>((set, get) => ({
     api.respondOffer(messageId, accept).catch(() => {});
   },
 
-  createOrder: async (itemId) => {
-    const { order } = await api.createOrder(itemId);
+  createOrder: async (itemId, paymentMethod) => {
+    const { order } = await api.createOrder(itemId, paymentMethod);
     set((s) => ({
       orders: [order, ...s.orders],
       items: s.items.map((i) => (i.id === itemId ? { ...i, status: "sold" } : i)),
-      wallet: [
-        { id: nextId("w"), userId: get().currentUserId, amount: -order.total, type: "purchase", label: `Purchase`, createdAt: order.createdAt },
-        ...s.wallet,
-      ],
+      // Only card payments debit the wallet; cash-on-delivery is paid in person.
+      wallet:
+        paymentMethod === "card"
+          ? [
+              { id: nextId("w"), userId: get().currentUserId, amount: -order.total, type: "purchase", label: `Purchase`, createdAt: order.createdAt },
+              ...s.wallet,
+            ]
+          : s.wallet,
     }));
     return order;
   },

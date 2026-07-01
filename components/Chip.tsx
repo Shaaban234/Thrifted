@@ -15,10 +15,10 @@ export function Chip({
       className={`rounded-full border px-4 py-2 ${
         active
           ? "bg-ink border-ink"
-          : "bg-white border-surface-border active:bg-surface-alt"
+          : "bg-surface border-surface-border active:bg-surface-alt"
       }`}
     >
-      <Text className={`text-sm font-medium ${active ? "text-white" : "text-ink"}`}>
+      <Text className={`text-sm font-medium ${active ? "text-surface" : "text-ink"}`}>
         {label}
       </Text>
     </Pressable>

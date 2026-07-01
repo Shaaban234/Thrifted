@@ -23,7 +23,7 @@ export function ItemCard({ item }: { item: Item }) {
         <Pressable
           onPress={() => toggleFavorite(item.id)}
           hitSlop={8}
-          className="absolute bottom-2 right-2 bg-white rounded-full w-8 h-8 items-center justify-center"
+          className="absolute bottom-2 right-2 bg-surface rounded-full w-8 h-8 items-center justify-center"
           style={{ elevation: 2 }}
         >
           <Ionicons
@@ -34,7 +34,7 @@ export function ItemCard({ item }: { item: Item }) {
         </Pressable>
         {item.status !== "active" && (
           <View className="absolute bottom-0 left-0 right-0 bg-ink/75 py-1">
-            <Text className="text-white text-center text-xs font-semibold uppercase tracking-wide">
+            <Text className="text-surface text-center text-xs font-semibold uppercase tracking-wide">
               {item.status === "sold" ? "Sold" : "Reserved"}
             </Text>
           </View>

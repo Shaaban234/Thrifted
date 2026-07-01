@@ -14,7 +14,7 @@ export default function Inbox() {
   const getUser = useStore((s) => s.getUser);
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="px-4 py-3 border-b border-surface-border">
         <Text className="text-2xl font-extrabold text-ink">Inbox</Text>
       </View>

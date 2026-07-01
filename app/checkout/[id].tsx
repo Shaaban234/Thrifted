@@ -8,15 +8,26 @@ import { Button } from "@/components/Button";
 import { useStore } from "@/lib/store";
 import { formatPrice, protectionFee, SHIPPING_FEE } from "@/lib/format";
 
+type PayMethod = "cod" | "card";
+
 export default function Checkout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const item = useStore((s) => s.getItem(id!));
   const createOrder = useStore((s) => s.createOrder);
+  const currentUserId = useStore((s) => s.currentUserId);
+  const me = useStore((s) => s.getUser(currentUserId));
   const [paying, setPaying] = useState(false);
+  const [method, setMethod] = useState<PayMethod>("card");
+
+  // Build a one-line address from the saved shipping details, if any.
+  const addressParts = [me?.addressLine1, me?.addressLine2, me?.postalCode, me?.city, me?.country]
+    .map((p) => p?.trim())
+    .filter(Boolean);
+  const hasAddress = addressParts.length > 0;
 
   if (!item) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
         <Text className="text-ink-muted">Item not found.</Text>
       </SafeAreaView>
     );
@@ -26,24 +37,31 @@ export default function Checkout() {
   const total = Math.round((item.price + fee + SHIPPING_FEE) * 100) / 100;
 
   const pay = async () => {
+    if (!hasAddress) {
+      Alert.alert("Add a shipping address", "We need somewhere to send your order.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Add address", onPress: () => router.push("/shipping-address" as any) },
+      ]);
+      return;
+    }
     setPaying(true);
     // Mock payment. Replace with Stripe PaymentSheet later.
     try {
-      const order = await createOrder(item.id);
+      const order = await createOrder(item.id, method);
       router.replace(`/order/${order.id}`);
     } catch (e: any) {
-      Alert.alert("Payment failed", e?.message ?? "Please try again.");
+      Alert.alert(method === "cod" ? "Couldn't place order" : "Payment failed", e?.message ?? "Please try again.");
       setPaying(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top", "bottom"]}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface-border">
         <Text className="text-lg font-extrabold text-ink">Checkout</Text>
         <Pressable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="close" size={26} color="#1A1A1A" />
+          <Ionicons name="close" size={26} className="text-ink" />
         </Pressable>
       </View>
 
@@ -60,13 +78,30 @@ export default function Checkout() {
 
         {/* Shipping */}
         <Section title="Delivery">
-          <Row icon="location-outline" title="Musterstraße 12, 10115 Berlin" subtitle="Standard delivery · 2–4 working days" />
-          <Row icon="cube-outline" title="DHL Packstation" subtitle="Tracked parcel" />
+          <Row
+            icon="location-outline"
+            title={hasAddress ? addressParts.join(", ") : "Add a shipping address"}
+            subtitle={hasAddress ? `${me?.fullName ?? ""} · Standard delivery · 2–4 working days`.replace(/^ · /, "") : "Tap to add where we should ship"}
+            onPress={() => router.push("/shipping-address" as any)}
+          />
         </Section>
 
         {/* Payment */}
         <Section title="Payment">
-          <Row icon="card-outline" title="Visa •••• 4242" subtitle="Mock payment method" />
+          <PayOption
+            icon="card-outline"
+            title="Card payment"
+            subtitle="Pay now · Visa •••• 4242 (mock)"
+            selected={method === "card"}
+            onPress={() => setMethod("card")}
+          />
+          <PayOption
+            icon="cash-outline"
+            title="Cash on Delivery"
+            subtitle="Pay in cash when your parcel arrives"
+            selected={method === "cod"}
+            onPress={() => setMethod("cod")}
+          />
         </Section>
 
         {/* Buyer protection */}
@@ -91,7 +126,12 @@ export default function Checkout() {
       </ScrollView>
 
       <View className="px-4 py-3 border-t border-surface-border">
-        <Button label={`Pay ${formatPrice(total)}`} icon="lock-closed" onPress={pay} loading={paying} />
+        <Button
+          label={method === "cod" ? `Place order · ${formatPrice(total)}` : `Pay ${formatPrice(total)}`}
+          icon={method === "cod" ? "bag-check-outline" : "lock-closed"}
+          onPress={pay}
+          loading={paying}
+        />
       </View>
     </SafeAreaView>
   );
@@ -106,16 +146,44 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ icon, title, subtitle }: { icon: any; title: string; subtitle: string }) {
+function Row({ icon, title, subtitle, onPress }: { icon: any; title: string; subtitle: string; onPress?: () => void }) {
   return (
-    <View className="flex-row items-center gap-3 bg-surface-alt rounded-xl p-3">
-      <Ionicons name={icon} size={20} color="#6B7280" />
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      className="flex-row items-center gap-3 bg-surface-alt rounded-xl p-3 active:opacity-80"
+    >
+      <Ionicons name={icon} size={20} className="text-ink-muted" />
       <View className="flex-1">
-        <Text className="text-ink font-medium">{title}</Text>
+        <Text className="text-ink font-medium" numberOfLines={2}>{title}</Text>
         <Text className="text-ink-faint text-xs">{subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
-    </View>
+      {onPress && <Ionicons name="chevron-forward" size={18} className="text-ink-faint" />}
+    </Pressable>
+  );
+}
+
+function PayOption({
+  icon, title, subtitle, selected, onPress,
+}: { icon: any; title: string; subtitle: string; selected: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`flex-row items-center gap-3 rounded-xl p-3 border ${
+        selected ? "border-primary bg-primary-light" : "border-surface-border bg-surface-alt"
+      }`}
+    >
+      <Ionicons name={icon} size={20} color={selected ? "#007782" : "#6B7280"} />
+      <View className="flex-1">
+        <Text className={`font-medium ${selected ? "text-primary-dark" : "text-ink"}`}>{title}</Text>
+        <Text className="text-ink-faint text-xs">{subtitle}</Text>
+      </View>
+      <Ionicons
+        name={selected ? "radio-button-on" : "radio-button-off"}
+        size={20}
+        color={selected ? "#007782" : "#9CA3AF"}
+      />
+    </Pressable>
   );
 }
 

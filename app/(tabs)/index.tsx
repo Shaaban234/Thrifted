@@ -44,13 +44,13 @@ export default function Home() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Top bar: wordmark + menu */}
       <View className="flex-row items-center justify-between px-4 pt-1 pb-2">
         <Text className="text-2xl font-extrabold text-primary tracking-tight">Thrifted</Text>
         <View className="flex-row items-center gap-4">
           <Pressable onPress={() => router.push("/notifications")} hitSlop={8} className="relative">
-            <Ionicons name="notifications-outline" size={26} color="#1A1A1A" />
+            <Ionicons name="notifications-outline" size={26} className="text-ink" />
             {unread > 0 && (
               <View className="absolute -top-1 -right-1 bg-accent rounded-full min-w-[16px] h-4 px-1 items-center justify-center">
                 <Text className="text-white text-[10px] font-bold">{unread}</Text>
@@ -58,7 +58,7 @@ export default function Home() {
             )}
           </Pressable>
           <Pressable onPress={() => router.push("/menu")} hitSlop={8}>
-            <Ionicons name="menu" size={28} color="#1A1A1A" />
+            <Ionicons name="menu" size={28} className="text-ink" />
           </Pressable>
         </View>
       </View>
@@ -71,14 +71,14 @@ export default function Home() {
             className="flex-row items-center px-3 py-2.5 active:opacity-70"
           >
             <Text className="text-ink font-medium">Catalog</Text>
-            <Ionicons name="chevron-down" size={16} color="#1A1A1A" style={{ marginLeft: 2 }} />
+            <Ionicons name="chevron-down" size={16} className="text-ink" style={{ marginLeft: 2 }} />
           </Pressable>
           <View className="w-px h-5 bg-surface-border" />
           <Pressable
             onPress={() => router.push("/(tabs)/search")}
             className="flex-1 flex-row items-center px-3 py-2.5 active:opacity-70"
           >
-            <Ionicons name="search" size={18} color="#9CA3AF" />
+            <Ionicons name="search" size={18} className="text-ink-faint" />
             <Text className="text-ink-faint ml-2">Search for items</Text>
           </Pressable>
         </View>
@@ -122,7 +122,7 @@ export default function Home() {
             />
             {/* Overlapping CTA card */}
             <View
-              className="mx-4 -mt-20 bg-white rounded-2xl p-5"
+              className="mx-4 -mt-20 bg-surface rounded-2xl p-5"
               style={{
                 shadowColor: "#000",
                 shadowOpacity: 0.12,
@@ -171,7 +171,7 @@ function CategoryPill({
     <Pressable
       onPress={onPress}
       className={`rounded-full border px-4 py-1.5 ${
-        active ? "border-primary bg-primary-light" : "border-surface-border bg-white"
+        active ? "border-primary bg-primary-light" : "border-surface-border bg-surface"
       }`}
     >
       <Text className={`text-sm font-semibold ${active ? "text-primary-dark" : "text-ink"}`}>

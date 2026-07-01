@@ -43,11 +43,11 @@ export default function Search() {
   }, [items, filters]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Search bar */}
       <View className="px-4 py-2">
         <View className="flex-row items-center bg-surface-alt rounded-lg px-3 py-2.5">
-          <Ionicons name="search" size={18} color="#9CA3AF" />
+          <Ionicons name="search" size={18} className="text-ink-faint" />
           <TextInput
             placeholder={categoryLabel ? `Search in "${categoryLabel}"` : "Search for items"}
             placeholderTextColor="#9CA3AF"
@@ -57,7 +57,7 @@ export default function Search() {
           />
           {filters.query.length > 0 && (
             <Pressable onPress={() => setFilters({ query: "" })} hitSlop={6}>
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              <Ionicons name="close-circle" size={18} className="text-ink-faint" />
             </Pressable>
           )}
         </View>

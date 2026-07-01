@@ -30,8 +30,29 @@ export interface User {
   reviewCount: number;
   followers: number;
   following: number;
+  isAdmin?: boolean;
   joinedAt: string;
+  // Private fields — only populated for the signed-in user (from /auth/me),
+  // never for other users returned in public listings.
+  email?: string;
+  fullName?: string;
+  phone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
 }
+
+// Shape accepted by the profile/address update endpoint.
+export type ProfileUpdate = Partial<
+  Pick<
+    User,
+    | "username" | "bio" | "location" | "avatarUrl"
+    | "fullName" | "phone" | "addressLine1" | "addressLine2"
+    | "city" | "postalCode" | "country"
+  >
+>;
 
 export interface Item {
   id: string;
@@ -82,6 +103,8 @@ export type OrderStatus =
   | "delivered"
   | "completed";
 
+export type PaymentMethod = "cod" | "card";
+
 export interface Order {
   id: string;
   itemId: string;
@@ -92,6 +115,7 @@ export interface Order {
   shippingFee: number;
   total: number;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
   createdAt: string;
 }
 

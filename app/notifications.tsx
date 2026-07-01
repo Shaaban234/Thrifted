@@ -36,10 +36,10 @@ export default function Notifications() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       <View className="flex-row items-center px-4 py-3 border-b border-surface-border">
         <Pressable onPress={() => router.back()} hitSlop={8} className="pr-2">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          <Ionicons name="arrow-back" size={24} className="text-ink" />
         </Pressable>
         <Text className="text-lg font-extrabold text-ink">Notifications</Text>
       </View>
@@ -55,7 +55,7 @@ export default function Notifications() {
           return (
             <Pressable
               onPress={() => open(n)}
-              className={`flex-row items-center px-4 py-3.5 ${n.read ? "bg-white" : "bg-primary-light/40"} active:bg-surface-alt`}
+              className={`flex-row items-center px-4 py-3.5 ${n.read ? "bg-surface" : "bg-primary-light/40"} active:bg-surface-alt`}
             >
               <View className="relative">
                 {actor ? (
@@ -66,7 +66,7 @@ export default function Notifications() {
                   </View>
                 )}
                 {actor && (
-                  <View className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
+                  <View className="absolute -bottom-1 -right-1 bg-surface rounded-full p-0.5">
                     <Ionicons name={icon.name} size={14} color={icon.color} />
                   </View>
                 )}
