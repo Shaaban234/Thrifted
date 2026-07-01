@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, Text, FlatList, Pressable, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Avatar } from "@/components/Avatar";
 import { StarRating } from "@/components/StarRating";
-import { ItemCard } from "@/components/ItemCard";
+import { GridTile, GRID_GAP } from "@/components/GridTile";
 import { ReviewRow } from "@/components/ReviewRow";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
@@ -21,6 +21,8 @@ export default function SellerProfile() {
   const isFollowing = useStore((s) => s.follows.includes(id!));
   const toggleFollow = useStore((s) => s.toggleFollow);
   const [tab, setTab] = useState<"listings" | "reviews">("listings");
+  const { width } = useWindowDimensions();
+  const tileSize = (width - GRID_GAP * 2) / 3;
 
   if (!user) {
     return (
@@ -101,11 +103,11 @@ export default function SellerProfile() {
         key="seller-grid"
         data={items}
         keyExtractor={(i) => i.id}
-        numColumns={2}
+        numColumns={3}
         ListHeaderComponent={Header}
-        renderItem={({ item }) => <ItemCard item={item} />}
-        columnWrapperStyle={{ gap: 12, paddingHorizontal: 12 }}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        renderItem={({ item }) => <GridTile item={item} size={tileSize} />}
+        columnWrapperStyle={{ gap: GRID_GAP }}
+        contentContainerStyle={{ gap: GRID_GAP, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<EmptyState icon="pricetag-outline" title="No listings yet" />}
       />

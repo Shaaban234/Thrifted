@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, FlatList, Share } from "react-native";
+import { View, Text, ScrollView, Pressable, FlatList, Share, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Avatar } from "@/components/Avatar";
 import { StarRating } from "@/components/StarRating";
-import { ItemCard } from "@/components/ItemCard";
+import { GridTile, GRID_GAP } from "@/components/GridTile";
 import { ReviewRow } from "@/components/ReviewRow";
 import { EmptyState } from "@/components/EmptyState";
 import { useStore } from "@/lib/store";
@@ -22,6 +22,8 @@ export default function Profile() {
   const balance = useStore((s) => s.walletBalance());
   const isAdmin = useStore((s) => s.isAdmin);
   const [tab, setTab] = useState<Tab>("listings");
+  const { width } = useWindowDimensions();
+  const tileSize = (width - GRID_GAP * 2) / 3;
 
   const myItems = items.filter((i) => i.sellerId === currentUserId);
   const favItems = items.filter((i) => favorites.includes(i.id));
@@ -142,11 +144,11 @@ export default function Profile() {
         key="profile-grid"
         data={gridData}
         keyExtractor={(i) => i.id}
-        numColumns={2}
+        numColumns={3}
         ListHeaderComponent={Header}
-        renderItem={({ item }) => <ItemCard item={item} />}
-        columnWrapperStyle={{ gap: 12, paddingHorizontal: 12 }}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        renderItem={({ item }) => <GridTile item={item} size={tileSize} />}
+        columnWrapperStyle={{ gap: GRID_GAP }}
+        contentContainerStyle={{ gap: GRID_GAP, paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <EmptyState
